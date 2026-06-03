@@ -1,0 +1,130 @@
+from agents.fast_router import FastRouterAgent
+
+
+def test_fast_router_direct_analysis_missing_values():
+    router = FastRouterAgent()
+
+    result = router.route("show missing values")
+
+    assert result.route == "DIRECT_ANALYSIS"
+    assert result.confidence > 0
+    assert "missing" in result.matched_keywords
+
+
+def test_fast_router_direct_analysis_columns():
+    router = FastRouterAgent()
+
+    result = router.route("show column names")
+
+    assert result.route == "DIRECT_ANALYSIS"
+
+
+def test_fast_router_visualization():
+    router = FastRouterAgent()
+
+    result = router.route("draw a bar chart of revenue by product")
+
+    assert result.route == "VISUALIZATION"
+
+
+def test_fast_router_codegen_sql():
+    router = FastRouterAgent()
+
+    result = router.route("write pandas code to group revenue by region")
+
+    assert result.route == "CODEGEN_SQL"
+
+
+def test_fast_router_planning():
+    router = FastRouterAgent()
+
+    result = router.route("give me an analysis plan for this dataset")
+
+    assert result.route == "PLANNING"
+
+
+def test_fast_router_personalization():
+    router = FastRouterAgent()
+
+    result = router.route("explain this for beginner")
+
+    assert result.route == "PERSONALIZATION"
+
+
+def test_fast_router_cleaning():
+    router = FastRouterAgent()
+
+    result = router.route("clean this dataset and convert types")
+
+    assert result.route == "CLEANING"
+
+
+def test_fast_router_unknown():
+    router = FastRouterAgent()
+
+    result = router.route("hello there")
+
+    assert result.route == "UNKNOWN"
+    assert result.confidence == 0.0
+
+
+def test_fast_router_direct_analysis_numeric_summary():
+    router = FastRouterAgent()
+
+    result = router.route("show numeric summary")
+
+    assert result.route == "DIRECT_ANALYSIS"
+
+
+def test_fast_router_direct_analysis_categorical_summary():
+    router = FastRouterAgent()
+
+    result = router.route("show categorical summary")
+
+    assert result.route == "DIRECT_ANALYSIS"
+
+
+def test_fast_router_direct_analysis_unique_values():
+    router = FastRouterAgent()
+
+    result = router.route("show unique values")
+
+    assert result.route == "DIRECT_ANALYSIS"
+
+
+def test_fast_router_direct_analysis_sample_rows():
+    router = FastRouterAgent()
+
+    result = router.route("show sample rows")
+
+    assert result.route == "DIRECT_ANALYSIS"
+
+def test_fast_router_visualization_distribution():
+    router = FastRouterAgent()
+
+    result = router.route("show distribution of revenue")
+
+    assert result.route == "VISUALIZATION"
+
+
+def test_fast_router_visualization_draw():
+    router = FastRouterAgent()
+
+    result = router.route("draw revenue by product")
+
+    assert result.route == "VISUALIZATION"
+
+def test_fast_router_planning_visualization_workflow():
+    router = FastRouterAgent()
+
+    result = router.route("create a visualization workflow")
+
+    assert result.route == "PLANNING"
+
+
+def test_fast_router_planning_next_steps():
+    router = FastRouterAgent()
+
+    result = router.route("what should I do next")
+
+    assert result.route == "PLANNING"
