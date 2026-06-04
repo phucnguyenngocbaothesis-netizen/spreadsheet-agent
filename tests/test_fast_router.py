@@ -128,3 +128,18 @@ def test_fast_router_planning_next_steps():
     result = router.route("what should I do next")
 
     assert result.route == "PLANNING"
+
+def test_fast_router_personalization_concise():
+    router = FastRouterAgent()
+
+    result = router.route("make it concise")
+
+    assert result.route == "PERSONALIZATION"
+
+
+def test_fast_router_personalization_simple():
+    router = FastRouterAgent()
+
+    result = router.route("make it simple for beginner")
+
+    assert result.route == "PERSONALIZATION"

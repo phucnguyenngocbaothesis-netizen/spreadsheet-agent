@@ -8,6 +8,8 @@ import streamlit as st
 ROOT_DIR = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT_DIR))
 
+from llm.local_llm_client import LocalLLMClient
+from llm.prompt_templates import PromptTemplates
 from agents.direct_analysis import DirectAnalysisAgent
 from core.pipeline import SpreadsheetPipeline
 from agents.fast_router import FastRouterAgent
@@ -15,6 +17,17 @@ from agents.chart_builder import ChartBuilderAgent
 from agents.eda_insight import EDAInsightAgent
 from agents.codegen_sql import CodegenSQLAgent
 from agents.planning_agent import PlanningAgent
+from agents.personalization_agent import PersonalizationAgent
+
+local_llm_client = LocalLLMClient()
+pipeline = SpreadsheetPipeline()
+direct_analysis_agent = DirectAnalysisAgent()
+fast_router_agent = FastRouterAgent()
+chart_builder_agent = ChartBuilderAgent()
+eda_insight_agent = EDAInsightAgent()
+codegen_sql_agent = CodegenSQLAgent()
+planning_agent = PlanningAgent()
+personalization_agent = PersonalizationAgent()
 
 st.set_page_config(
     page_title="Spreadsheet Agent - Week 1",
@@ -34,19 +47,150 @@ This prototype supports:
 """
 )
 
+st.sidebar.header("User Profile")
+
+user_role = st.sidebar.text_input("Role", value="student")
+
+technical_level = st.sidebar.selectbox(
+    "Technical level",
+    options=["beginner", "intermediate", "advanced"],
+    index=0,
+)
+
+response_style = st.sidebar.selectbox(
+    "Response style",
+    options=["concise", "balanced", "detailed"],
+    index=1,
+)
+
+preferred_format = st.sidebar.selectbox(
+    "Preferred format",
+    options=["bullet", "paragraph", "step_by_step"],
+    index=0,
+)
+
+user_profile = personalization_agent.create_profile(
+    role=user_role,
+    technical_level=technical_level,
+    response_style=response_style,
+    preferred_format=preferred_format,
+)
+apply_personalization = st.sidebar.checkbox(
+    "Apply personalization to text outputs",
+    value=False,
+)
+
+
+def render_text_output(title: str, content: str) -> None:
+    st.subheader(title)
+
+    if not apply_personalization:
+        st.markdown(content)
+        return
+
+    personalization_result = personalization_agent.personalize_response(
+        content=content,
+        profile=user_profile,
+    )
+
+    st.json(
+        {
+            "profile": personalization_agent.summarize_profile(user_profile),
+            "applied_rules": personalization_result.applied_rules,
+            "warnings": personalization_result.warnings,
+        }
+    )
+
+    st.markdown(personalization_result.personalized_content)
+st.sidebar.header("LLM Settings")
+
+def render_optional_llm_explanation(
+    title: str,
+    prompt: str,
+    system_prompt: str = "Explain the result clearly and do not invent values.",
+) -> None:
+    if not enable_llm_explanation:
+        return
+
+    st.subheader(title)
+
+    llm_status = local_llm_client.get_status()
+    llm_model_validation = local_llm_client.validate_model()
+
+    st.sidebar.json(
+        {
+            "available": llm_status.available,
+            "provider": llm_status.provider,
+            "model": llm_status.model,
+            "base_url": llm_status.base_url,
+            "status_message": llm_status.message,
+            "model_valid": llm_model_validation.is_valid,
+            "model_message": llm_model_validation.message,
+            "available_models": llm_model_validation.available_models,
+        }
+    )
+
+    if not llm_status.available:
+        st.warning(llm_status.message)
+        return
+
+    model_validation = local_llm_client.validate_model()
+
+    if not model_validation.is_valid:
+        st.warning(model_validation.message)
+
+        if model_validation.available_models:
+            st.info(
+                "Available local models: "
+                + ", ".join(model_validation.available_models)
+            )
+
+        return
+
+    llm_response = local_llm_client.generate(
+        prompt=prompt,
+        system_prompt=system_prompt,
+        temperature=0.2,
+        max_tokens=512,
+    )
+
+    if not llm_response.success:
+        st.warning(f"LLM explanation failed: {llm_response.error}")
+        return
+
+    st.markdown(llm_response.content)
+
+enable_llm_explanation = st.sidebar.checkbox(
+    "Enable optional LLM explanation",
+    value=False,
+)
+
+llm_model_name = st.sidebar.text_input(
+    "Local LLM model",
+    value="llama3.1:8b",
+)
+
+local_llm_client = LocalLLMClient(model_name=llm_model_name)
+
+if enable_llm_explanation:
+    llm_status = local_llm_client.get_status()
+
+    st.sidebar.json(
+        {
+            "available": llm_status.available,
+            "provider": llm_status.provider,
+            "model": llm_status.model,
+            "base_url": llm_status.base_url,
+            "message": llm_status.message,
+        }
+    )
+else:
+    llm_status = None
+
 uploaded_file = st.file_uploader(
     "Upload a CSV or Excel file",
     type=["csv", "xlsx", "xls"],
 )
-
-pipeline = SpreadsheetPipeline()
-direct_analysis_agent = DirectAnalysisAgent()
-fast_router_agent = FastRouterAgent()
-chart_builder_agent = ChartBuilderAgent()
-eda_insight_agent = EDAInsightAgent()
-codegen_sql_agent = CodegenSQLAgent()
-planning_agent = PlanningAgent()
-
 if uploaded_file is None:
     st.info("Upload a CSV or Excel file to start.")
     st.stop()
@@ -110,7 +254,18 @@ try:
 
         if route_result.route == "DIRECT_ANALYSIS":
             answer = direct_analysis_agent.answer(question, profile)
-            st.markdown(answer)
+            render_text_output("Direct Analysis Result", answer)
+
+            llm_prompt = PromptTemplates.eda_explanation_prompt(
+                user_question=question,
+                deterministic_result=answer,
+                profile=profile,
+            )
+            render_optional_llm_explanation(
+                title="LLM Explanation",
+                prompt=llm_prompt
+            )
+
         elif route_result.route == "VISUALIZATION":
             try:
                 chart_result = chart_builder_agent.build_chart(question, df)
@@ -136,8 +291,27 @@ try:
                     y_column=chart_result.y_column,
                 )
 
-                st.subheader("Chart Insights")
-                st.markdown(eda_insight_agent.format_result_as_markdown(chart_insight_result))
+                chart_insight_markdown = eda_insight_agent.format_result_as_markdown(
+                    chart_insight_result
+                )
+
+                render_text_output("Chart Insights", chart_insight_markdown)
+                chart_metadata = {
+                    "chart_type": chart_result.chart_type,
+                    "x_column": chart_result.x_column,
+                    "y_column": chart_result.y_column,
+                    "reason": chart_result.reason,
+                }
+
+                llm_prompt = PromptTemplates.chart_explanation_prompt(
+                    user_question=question,
+                    chart_metadata=chart_metadata,
+                    chart_insights_markdown=chart_insight_markdown,
+                )
+                render_optional_llm_explanation(
+                    title="Optional LLM Explanation",
+                    prompt=llm_prompt,
+                )
 
             except Exception as chart_error:
                 st.error("Failed to build chart.")
@@ -145,9 +319,19 @@ try:
 
         elif route_result.route == "EDA_INSIGHT":
             insight_result = eda_insight_agent.generate_insights(profile)
+            insight_markdown = eda_insight_agent.format_result_as_markdown(insight_result)
 
-            st.subheader("EDA Insight Result")
-            st.markdown(eda_insight_agent.format_result_as_markdown(insight_result))
+            render_text_output("EDA Insights Results", insight_markdown)
+
+            llm_prompt = PromptTemplates.eda_explanation_prompt(
+                user_question=question,
+                deterministic_result=insight_markdown,
+                profile=profile,
+            )
+            render_optional_llm_explanation(
+                title="LLM Explanation",
+                prompt=llm_prompt,
+            )
 
         elif route_result.route == "CODEGEN_SQL":
             codegen_result = codegen_sql_agent.generate(question, profile)
@@ -170,9 +354,9 @@ try:
 
         elif route_result.route == "PLANNING":
             planning_result = planning_agent.create_plan(question, profile)
+            planning_markdown = planning_agent.format_result_as_markdown(planning_result)
 
-            st.subheader("Planning Result")
-            st.markdown(planning_agent.format_result_as_markdown(planning_result))
+            render_text_output("Planning Result", planning_markdown)
 
             for step in planning_result.steps:
                 with st.expander(f"Step {step.step_number}: {step.title}"):
@@ -183,6 +367,31 @@ try:
                             "expected_output": step.expected_output,
                         }
                     )
+
+        elif route_result.route == "PERSONALIZATION":
+            base_content = (
+                "This dataset has "
+                f"{profile['shape']['rows']} rows and {profile['shape']['columns']} columns. "
+                "The system can inspect missing values, duplicate rows, numeric summaries, "
+                "categorical summaries, charts, EDA insights, code generation, and analysis plans."
+            )
+
+            personalization_result = personalization_agent.personalize_response(
+                content=base_content,
+                profile=user_profile,
+            )
+
+            st.subheader("Personalization Result")
+
+            st.json(
+                {
+                    "profile": personalization_agent.summarize_profile(user_profile),
+                    "applied_rules": personalization_result.applied_rules,
+                    "warnings": personalization_result.warnings,
+                }
+            )
+
+            st.markdown(personalization_result.personalized_content)
 
         else:
             st.info(
