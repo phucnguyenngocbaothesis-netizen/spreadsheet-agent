@@ -21,6 +21,7 @@ from agents.eda_insight import EDAInsightAgent
 from agents.codegen_sql import CodegenSQLAgent
 from agents.planning_agent import PlanningAgent
 from agents.personalization_agent import PersonalizationAgent
+from agents.llm_router_fallback_agent import LLMRouterFallbackAgent
 
 pipeline = SpreadsheetPipeline()
 direct_analysis_agent = DirectAnalysisAgent()
@@ -31,6 +32,7 @@ codegen_sql_agent = CodegenSQLAgent()
 planning_agent = PlanningAgent()
 personalization_agent = PersonalizationAgent()
 sqlite_store = SQLiteStore()
+
 
 @st.cache_data(ttl=30)
 def get_cached_llm_models() -> list[str]:
@@ -231,6 +233,10 @@ enable_llm_explanation = st.sidebar.checkbox(
     "Enable optional LLM explanation",
     value=False,
 )
+enable_llm_route_fallback = st.sidebar.checkbox(
+    "Enable optional LLM route fallback",
+    value=False,
+)
 
 available_llm_models = get_cached_llm_models()
 available_llm_models = ModelUtils.sort_models(available_llm_models)
@@ -274,7 +280,7 @@ else:
 
 local_llm_client = LocalLLMClient(model_name=llm_model_name)
 llm_explanation_agent = LLMExplanationAgent(local_llm_client)
-
+llm_router_fallback_agent = LLMRouterFallbackAgent(local_llm_client)
 
 if enable_llm_explanation:
     llm_status = local_llm_client.get_status()
@@ -350,9 +356,30 @@ try:
     if question:
         detected_language = LanguageUtils.detect_language(question)
         route_result = fast_router_agent.route(question, profile)
+        llm_route_fallback_result = None
+
+        if (
+            route_result.route == "UNKNOWN"
+            and enable_llm_route_fallback
+        ):
+            llm_route_fallback_result = llm_router_fallback_agent.classify_unknown_route(
+                user_question=question,
+            )
+            route_result = llm_route_fallback_result.route_result
+
         answer_preview = ""
 
         st.subheader("Route Result")
+        if llm_route_fallback_result is not None:
+            with st.expander("LLM Route Fallback Metadata"):
+                st.json(
+                    {
+                        "used_llm": llm_route_fallback_result.used_llm,
+                        "raw_response": llm_route_fallback_result.raw_response,
+                        "error": llm_route_fallback_result.error,
+                        "warnings": llm_route_fallback_result.warnings,
+                    }
+                )
         st.json(
             {
                 "route": route_result.route,
