@@ -255,7 +255,7 @@ def test_llm_explanation_agent_warns_when_response_incomplete():
 
 def test_llm_explanation_agent_explains_with_table_context():
     agent = LLMExplanationAgent(FakeSuccessfulClient())
-
+    language="vi",
     df = pd.DataFrame(
         {
             "region": ["HCMC", "Hanoi", "Danang"],

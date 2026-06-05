@@ -403,6 +403,7 @@ try:
                 deterministic_result=answer,
                 df=df,
                 profile=profile,
+                language=detected_language,
             )
 
             render_optional_llm_explanation(
@@ -454,8 +455,9 @@ try:
                     user_question=question,
                     chart_metadata=chart_metadata,
                     chart_insights_markdown=chart_insight_markdown,
+                    language=detected_language,
                 )
-
+            
                 render_optional_llm_explanation(
                     title="Optional LLM Chart Explanation",
                     explanation_result=llm_explanation_result,
@@ -476,6 +478,7 @@ try:
                 deterministic_result=insight_markdown,
                 df=df,
                 profile=profile,
+                language=detected_language,
             )
 
             render_optional_llm_explanation(

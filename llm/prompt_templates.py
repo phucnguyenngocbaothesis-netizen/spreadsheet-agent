@@ -11,11 +11,22 @@ class PromptTemplates:
     """
 
     @staticmethod
+    def get_response_language_instruction(language: str) -> str:
+        if language == "vi":
+            return "Respond in Vietnamese."
+
+        return "Respond in English."
+
+    @staticmethod
     def eda_explanation_prompt(
         user_question: str,
         deterministic_result: str,
         profile: dict[str, Any],
+        language: str = "en",
     ) -> str:
+        response_language_instruction = PromptTemplates.get_response_language_instruction(
+            language
+        )
         return f"""
 You are explaining spreadsheet analysis results.
 
@@ -28,6 +39,9 @@ Dataset shape:
 
 Deterministic result:
 {deterministic_result}
+
+Response language:
+{response_language_instruction}
 
 Task:
 Explain the deterministic result clearly.
@@ -52,7 +66,11 @@ Output format:
         user_question: str,
         chart_metadata: dict[str, Any],
         chart_insights_markdown: str,
+        language: str = "en",
     ) -> str:
+        response_language_instruction = PromptTemplates.get_response_language_instruction(
+            language
+        )
         return f"""
 You are explaining a chart generated from spreadsheet data.
 
@@ -64,6 +82,9 @@ Chart metadata:
 
 Chart-grounded insights:
 {chart_insights_markdown}
+
+Response language:
+{response_language_instruction}
 
 Task:
 Explain what the chart shows.
@@ -88,7 +109,11 @@ Output format:
         user_question: str,
         deterministic_result: str,
         table_context_markdown: str,
+        language: str = "en",
     ) -> str:
+        response_language_instruction = PromptTemplates.get_response_language_instruction(
+            language
+        )
         return f"""
     You are explaining spreadsheet analysis results.
 
@@ -100,6 +125,9 @@ Output format:
 
     Query-aware table context:
     {table_context_markdown}
+
+    Response language:
+    {response_language_instruction}
 
     Task:
     Explain the deterministic result clearly using the selected table context.

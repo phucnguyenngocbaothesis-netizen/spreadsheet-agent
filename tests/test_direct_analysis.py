@@ -182,3 +182,42 @@ def test_direct_analysis_answers_missing_values_in_vietnamese():
 
     assert "giá trị thiếu" in answer
     assert "revenue" in answer
+
+def test_direct_analysis_answers_columns_in_vietnamese():
+    agent = DirectAnalysisAgent()
+
+    answer = agent.answer(
+        "cho mình xem tên cột",
+        make_profile(),
+        language="vi",
+    )
+
+    assert "Các cột" in answer
+    assert "product" in answer
+
+
+def test_direct_analysis_answers_dtypes_in_vietnamese():
+    agent = DirectAnalysisAgent()
+
+    answer = agent.answer(
+        "cho mình xem kiểu dữ liệu",
+        make_profile(),
+        language="vi",
+    )
+
+    assert "Kiểu dữ liệu" in answer
+    assert "revenue" in answer
+
+
+def test_direct_analysis_answers_column_summary_in_vietnamese():
+    agent = DirectAnalysisAgent()
+
+    answer = agent.answer(
+        "cho mình biết về revenue",
+        make_profile(),
+        language="vi",
+    )
+
+    assert "Tóm tắt cột" in answer
+    assert "revenue" in answer
+    assert "Giá trị thiếu" in answer

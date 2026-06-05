@@ -18,70 +18,125 @@ class DirectAnalysisAgent:
     ) -> str:
         question_lower = question.lower().strip()
 
-        if self._contains_any(question_lower, ["duplicate", "duplicated",  "trùng", "lặp", "trùng lặp", "dòng trùng"]):
-            return self._answer_duplicates(profile, language)
-
         if self._contains_any(
             question_lower,
             ["missing", "null", "nan", "thiếu", "giá trị thiếu", "dữ liệu thiếu"],
         ):
             return self._answer_missing_values(profile, language)
 
+        if self._contains_any(
+            question_lower,
+            ["duplicate", "duplicates", "trùng", "lặp", "trùng lặp", "dòng trùng"],
+        ):
+            return self._answer_duplicates(profile, language)
+
+        if self._contains_any(
+            question_lower,
+            ["sample", "preview", "head", "show sample rows", "xem trước", "mẫu dữ liệu", "dòng mẫu"],
+        ):
+            return self._answer_sample_rows(profile, language)
+
+        if self._contains_any(
+            question_lower,
+            ["columns", "column names", "show columns", "cột", "tên cột"],
+        ):
+            return self._answer_columns(profile, language)
+
+        if self._contains_any(
+            question_lower,
+            ["data types", "dtypes", "types", "kiểu dữ liệu", "loại dữ liệu"],
+        ):
+            return self._answer_dtypes(profile, language)
+
         mentioned_column = self._find_mentioned_column(question_lower, profile)
 
         if mentioned_column is not None and self._is_column_summary_question(question_lower):
-            return self._answer_column_summary(profile, mentioned_column)
+            return self._answer_column_summary(profile, mentioned_column, language)
 
-        if self._contains_any(question_lower, ["numeric summary", "statistics", "stats", "describe"]):
-            return self._answer_numeric_summary(profile)
+        if self._contains_any(
+            question_lower,
+            [
+                "numeric summary",
+                "statistics",
+                "stats",
+                "describe",
+                "thống kê số",
+                "tóm tắt số",
+            ],
+        ):
+            return self._answer_numeric_summary(profile, language)
 
-        if self._contains_any(question_lower, ["categorical summary", "top values", "value counts"]):
-            return self._answer_categorical_summary(profile)
+        if self._contains_any(
+            question_lower,
+            [
+                "categorical summary",
+                "unique",
+                "unique values",
+                "category",
+                "categorical",
+                "tóm tắt phân loại",
+                "giá trị duy nhất",
+                "giá trị khác nhau",
+            ],
+        ):
+            return self._answer_categorical_summary(profile, language)
 
-        if self._contains_any(question_lower, ["unique", "distinct"]):
-            return self._answer_unique_values(profile)
-
-        if self._contains_any(question_lower, ["sample", "preview", "head", "first rows"]):
-            return self._answer_sample_rows(profile)
-
-        if self._contains_any(question_lower, ["dtype", "data type", "types"]):
-            return self._answer_dtypes(profile)
-
-        if self._contains_any(question_lower, ["column names", "columns", "fields"]):
-            return self._answer_columns(profile)
-
-        if self._contains_any(question_lower, ["shape", "size", "row count", "column count", "how many rows"]):
-            return self._answer_shape(profile)
+        if self._contains_any(
+            question_lower,
+            ["shape", "rows", "columns count", "số dòng", "số cột", "kích thước"],
+        ):
+            return self._answer_shape(profile, language)
 
         return (
             "This version can answer questions about shape, columns, data types, "
             "missing values, duplicate rows, numeric summary, categorical summary, "
             "unique values, and sample rows."
         )
-
     def _contains_any(self, text: str, keywords: list[str]) -> bool:
         return any(keyword in text for keyword in keywords)
 
-    def _answer_shape(self, profile: dict[str, Any]) -> str:
+    def _answer_shape(self, profile: dict[str, Any], language: str = "en") -> str:
         rows = profile["shape"]["rows"]
         columns = profile["shape"]["columns"]
 
+        if language == "vi":
+            return f"Dataset có **{rows} dòng** và **{columns} cột**."
+
         return f"The dataset has **{rows} rows** and **{columns} columns**."
 
-    def _answer_columns(self, profile: dict[str, Any]) -> str:
-        columns = profile["columns"]
-        column_text = "\n".join(f"- `{column}`" for column in columns)
+    def _answer_columns(
+        self,
+        profile: dict,
+        language: str = "en",
+    ) -> str:
+        columns = profile.get("columns", [])
 
-        return f"The dataset contains these columns:\n\n{column_text}"
+        if language == "vi":
+            lines = ["Các cột trong dataset:", ""]
+        else:
+            lines = ["Dataset columns:", ""]
 
-    def _answer_dtypes(self, profile: dict[str, Any]) -> str:
-        dtypes = profile["dtypes"]
-        dtype_text = "\n".join(
-            f"- `{column}`: `{dtype}`"
-            for column, dtype in dtypes.items()
-        )
+        for column in columns:
+            lines.append(f"- `{column}`")
 
-        return f"Detected data types:\n\n{dtype_text}"
+        return "\n".join(lines)
+
+    def _answer_dtypes(
+        self,
+        profile: dict,
+        language: str = "en",
+    ) -> str:
+        dtypes = profile.get("dtypes", {})
+
+        if language == "vi":
+            lines = ["Kiểu dữ liệu của các cột:", ""]
+        else:
+            lines = ["Column data types:", ""]
+
+        for column, dtype in dtypes.items():
+            lines.append(f"- `{column}`: `{dtype}`")
+
+        return "\n".join(lines)
 
     def _answer_missing_values(
         self,
@@ -125,13 +180,18 @@ class DirectAnalysisAgent:
 
         return f"The dataset has **{duplicate_rows} duplicate rows**."
 
-    def _answer_numeric_summary(self, profile: dict[str, Any]) -> str:
+    def _answer_numeric_summary(self, profile: dict, language: str = "en") -> str:
         numeric_summary = profile.get("numeric_summary", {})
 
         if not numeric_summary:
+            if language == "vi":
+                return "Không có cột số nào được phát hiện."
             return "No numeric columns were detected."
 
-        lines = []
+        if language == "vi":
+            lines = ["Tóm tắt các cột số:", ""]
+        else:
+            lines = ["Numeric column summary:", ""]
 
         for column, stats in numeric_summary.items():
             lines.append(f"### `{column}`")
@@ -144,13 +204,18 @@ class DirectAnalysisAgent:
 
         return "Numeric summary:\n\n" + "\n".join(lines)
 
-    def _answer_categorical_summary(self, profile: dict[str, Any]) -> str:
+    def _answer_categorical_summary(self, profile: dict[str, Any], language: str = "en") -> str:
         categorical_summary = profile.get("categorical_summary", {})
 
         if not categorical_summary:
+            if language == "vi":
+                return "Không có cột phân loại nào được phát hiện."
             return "No categorical columns were detected."
 
-        lines = []
+        if language == "vi":
+            lines = ["Tóm tắt các cột phân loại:", ""] 
+        else:
+            lines = ["Categorical column summary:", ""]
 
         for column, summary in categorical_summary.items():
             lines.append(f"### `{column}`")
@@ -165,26 +230,36 @@ class DirectAnalysisAgent:
 
         return "Categorical summary:\n\n" + "\n".join(lines)
 
-    def _answer_unique_values(self, profile: dict[str, Any]) -> str:
+    def _answer_unique_values(self, profile: dict[str, Any], language: str = "en") -> str:
         categorical_summary = profile.get("categorical_summary", {})
 
         if not categorical_summary:
+            if language == "vi":
+                return "Không có cột phân loại nào được phát hiện." 
             return "No categorical columns were detected."
 
-        lines = []
+        if language == "vi":
+            lines = ["Tóm tắt số lượng giá trị duy nhất:", ""]
+        else:
+            lines = ["Unique value count:", ""]
 
         for column, summary in categorical_summary.items():
             lines.append(f"- `{column}`: {summary['unique_count']} unique values")
 
-        return "Unique value count:\n\n" + "\n".join(lines)
+        return "\n".join(lines)
 
-    def _answer_sample_rows(self, profile: dict[str, Any]) -> str:
+    def _answer_sample_rows(self, profile: dict[str, Any], language: str = "en") -> str:
         sample_rows = profile.get("sample_rows", [])
 
         if not sample_rows:
+            if language == "vi":
+                return "Không có hàng mẫu nào khả dụng."
             return "No sample rows are available."
 
-        lines = []
+        if language == "vi":
+            lines = ["Giá trị mẫu:", ""]
+        else:
+            lines = ["Sample rows:", ""]
 
         for index, row in enumerate(sample_rows, start=1):
             lines.append(f"### Row {index}")
@@ -206,9 +281,15 @@ class DirectAnalysisAgent:
                 "information about",
                 "explain",
                 "about",
+                "cho mình biết về",
+                "cho tôi biết về",
+                "nói về",
+                "mô tả",
+                "tóm tắt",
+                "giải thích",
+                "thông tin về",
             ],
         )
-
     def _find_mentioned_column(
         self,
         question_lower: str,
@@ -244,8 +325,9 @@ class DirectAnalysisAgent:
 
     def _answer_column_summary(
         self,
-        profile: dict[str, Any],
+        profile: dict,
         column: str,
+        language: str = "en",
     ) -> str:
         dtypes = profile.get("dtypes", {})
         missing_values = profile.get("missing_values", {})
@@ -258,37 +340,65 @@ class DirectAnalysisAgent:
         missing_count = missing_values.get(column, 0)
         missing_pct = missing_percentage.get(column, 0.0)
 
-        lines = [
-            f"Column summary for `{column}`:",
-            "",
-            f"- Data type: `{dtype}`",
-            f"- Missing values: {missing_count} ({missing_pct}%)",
-        ]
+        if language == "vi":
+            lines = [
+                f"Tóm tắt cột `{column}`:",
+                "",
+                f"- Kiểu dữ liệu: `{dtype}`",
+                f"- Giá trị thiếu: {missing_count} ({missing_pct}%)",
+            ]
+        else:
+            lines = [
+                f"Column summary for `{column}`:",
+                "",
+                f"- Data type: `{dtype}`",
+                f"- Missing values: {missing_count} ({missing_pct}%)",
+            ]
 
         if column in numeric_summary:
             stats = numeric_summary[column]
 
-            lines.extend(
-                [
-                    "- Column kind: numeric",
-                    f"- Count: {stats.get('count')}",
-                    f"- Mean: {stats.get('mean')}",
-                    f"- Median: {stats.get('median')}",
-                    f"- Min: {stats.get('min')}",
-                    f"- Max: {stats.get('max')}",
-                ]
-            )
+            if language == "vi":
+                lines.extend(
+                    [
+                        "- Loại cột: numeric",
+                        f"- Count: {stats.get('count')}",
+                        f"- Mean: {stats.get('mean')}",
+                        f"- Median: {stats.get('median')}",
+                        f"- Min: {stats.get('min')}",
+                        f"- Max: {stats.get('max')}",
+                    ]
+                )
+            else:
+                lines.extend(
+                    [
+                        "- Column kind: numeric",
+                        f"- Count: {stats.get('count')}",
+                        f"- Mean: {stats.get('mean')}",
+                        f"- Median: {stats.get('median')}",
+                        f"- Min: {stats.get('min')}",
+                        f"- Max: {stats.get('max')}",
+                    ]
+                )
 
         elif column in categorical_summary:
             summary = categorical_summary[column]
             top_values = summary.get("top_values", {})
 
-            lines.extend(
-                [
-                    "- Column kind: categorical",
-                    f"- Unique values: {summary.get('unique_count')}",
-                ]
-            )
+            if language == "vi":
+                lines.extend(
+                    [
+                        "- Loại cột: categorical",
+                        f"- Số giá trị duy nhất: {summary.get('unique_count')}",
+                    ]
+                )
+            else:
+                lines.extend(
+                    [
+                        "- Column kind: categorical",
+                        f"- Unique values: {summary.get('unique_count')}",
+                    ]
+                )
 
             if top_values:
                 lines.append("- Top values:")
@@ -296,12 +406,18 @@ class DirectAnalysisAgent:
                 for value, count in top_values.items():
                     lines.append(f"  - `{value}`: {count}")
 
-        elif "datetime" in dtype.lower():
-            lines.append("- Column kind: datetime")
-
+        elif "datetime" in str(dtype).lower():
+            lines.append(
+                "- Loại cột: datetime"
+                if language == "vi"
+                else "- Column kind: datetime"
+            )
         else:
-            lines.append("- Column kind: text or unknown")
-
+            lines.append(
+                "- Loại cột: text hoặc unknown"
+                if language == "vi"
+                else "- Column kind: text or unknown"
+            )
         sample_values = []
 
         for row in sample_rows:
@@ -310,7 +426,7 @@ class DirectAnalysisAgent:
 
         if sample_values:
             unique_sample_values = list(dict.fromkeys(sample_values))[:5]
-            lines.append("- Sample values:")
+            lines.append("- Giá trị mẫu:" if language == "vi" else "- Sample values:")
 
             for value in unique_sample_values:
                 lines.append(f"  - `{value}`")

@@ -57,3 +57,29 @@ def test_eda_explanation_with_table_context_prompt_contains_context():
     assert "Query-aware table context" in prompt
     assert "Do not invent numbers" in prompt
     assert "Output format" in prompt
+
+def test_eda_explanation_with_table_context_prompt_supports_vietnamese():
+    prompt = PromptTemplates.eda_explanation_with_table_context_prompt(
+        user_question="cho mình xem giá trị thiếu",
+        deterministic_result="revenue có 1 giá trị thiếu.",
+        table_context_markdown="## Query-Aware Table Context",
+        language="vi",
+    )
+
+    assert "Respond in Vietnamese" in prompt
+    assert "cho mình xem giá trị thiếu" in prompt
+
+
+def test_chart_explanation_prompt_supports_vietnamese():
+    prompt = PromptTemplates.chart_explanation_prompt(
+        user_question="vẽ biểu đồ doanh thu theo khu vực",
+        chart_metadata={
+            "chart_type": "bar",
+            "x_column": "region",
+            "y_column": "revenue",
+        },
+        chart_insights_markdown="HCMC has the highest revenue.",
+        language="vi",
+    )
+
+    assert "Respond in Vietnamese" in prompt

@@ -41,11 +41,13 @@ class LLMExplanationAgent:
         user_question: str,
         deterministic_result: str,
         profile: dict[str, Any],
+        language: str = "en",
     ) -> LLMExplanationResult:
         prompt = PromptTemplates.eda_explanation_prompt(
             user_question=user_question,
             deterministic_result=deterministic_result,
             profile=profile,
+            language=language,
         )
 
         return self._generate_explanation(
@@ -59,6 +61,7 @@ class LLMExplanationAgent:
         deterministic_result: str,
         df: pd.DataFrame,
         profile: dict[str, Any],
+        language: str = "en",
     ) -> LLMExplanationResult:
         table_context = self.table_context_agent.build_context(
             question=user_question,
@@ -74,6 +77,7 @@ class LLMExplanationAgent:
             user_question=user_question,
             deterministic_result=deterministic_result,
             table_context_markdown=table_context_markdown,
+            language=language,
         )
 
         result = self._generate_explanation(
@@ -91,11 +95,13 @@ class LLMExplanationAgent:
         user_question: str,
         chart_metadata: dict[str, Any],
         chart_insights_markdown: str,
+        language: str = "en",
     ) -> LLMExplanationResult:
         prompt = PromptTemplates.chart_explanation_prompt(
             user_question=user_question,
             chart_metadata=chart_metadata,
             chart_insights_markdown=chart_insights_markdown,
+            language=language,
         )
 
         return self._generate_explanation(
