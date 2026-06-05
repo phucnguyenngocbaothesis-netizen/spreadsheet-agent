@@ -3,16 +3,16 @@ id,user_question,expected_route,predicted_route,is_correct,confidence,matched_ke
 2,show duplicate rows,DIRECT_ANALYSIS,DIRECT_ANALYSIS,True,0.8,rows|duplicate,"Matched keywords for route DIRECT_ANALYSIS: ['rows', 'duplicate']"
 3,show numeric summary,DIRECT_ANALYSIS,DIRECT_ANALYSIS,True,0.65,numeric summary,Matched keywords for route DIRECT_ANALYSIS: ['numeric summary']
 4,show categorical summary,DIRECT_ANALYSIS,DIRECT_ANALYSIS,True,0.65,categorical summary,Matched keywords for route DIRECT_ANALYSIS: ['categorical summary']
-5,show sample rows,DIRECT_ANALYSIS,DIRECT_ANALYSIS,True,0.8,rows|sample rows,"Matched keywords for route DIRECT_ANALYSIS: ['rows', 'sample rows']"
+5,show sample rows,DIRECT_ANALYSIS,DIRECT_ANALYSIS,True,0.8,rows|sample,"Matched keywords for route DIRECT_ANALYSIS: ['rows', 'sample']"
 6,draw bar chart of revenue by product,VISUALIZATION,VISUALIZATION,True,0.95,chart|bar chart|draw,"Matched keywords for route VISUALIZATION: ['chart', 'bar chart', 'draw']"
 7,show histogram of revenue,VISUALIZATION,VISUALIZATION,True,0.65,histogram,Matched keywords for route VISUALIZATION: ['histogram']
 8,show line chart of revenue over order date,VISUALIZATION,VISUALIZATION,True,0.8,chart|line chart,"Matched keywords for route VISUALIZATION: ['chart', 'line chart']"
 9,show scatter plot of quantity and revenue,VISUALIZATION,VISUALIZATION,True,0.8,plot|scatter,"Matched keywords for route VISUALIZATION: ['plot', 'scatter']"
-10,find insights,EDA_INSIGHT,EDA_INSIGHT,True,0.65,insight,Matched keywords for route EDA_INSIGHT: ['insight']
+10,find insights,EDA_INSIGHT,EDA_INSIGHT,True,0.8,insight|insights,"Matched keywords for route EDA_INSIGHT: ['insight', 'insights']"
 11,analyze this dataset,EDA_INSIGHT,EDA_INSIGHT,True,0.65,analyze,Matched keywords for route EDA_INSIGHT: ['analyze']
-12,find trends in this dataset,EDA_INSIGHT,EDA_INSIGHT,True,0.65,trend,Matched keywords for route EDA_INSIGHT: ['trend']
-13,write pandas code to group revenue by region,CODEGEN_SQL,CODEGEN_SQL,True,0.8,code|pandas,"Matched keywords for route CODEGEN_SQL: ['code', 'pandas']"
-14,write SQL query to group revenue by region,CODEGEN_SQL,CODEGEN_SQL,True,0.8,sql|query,"Matched keywords for route CODEGEN_SQL: ['sql', 'query']"
+12,find trends in this dataset,EDA_INSIGHT,EDA_INSIGHT,True,0.8,trend|trends,"Matched keywords for route EDA_INSIGHT: ['trend', 'trends']"
+13,write pandas code to group revenue by region,CODEGEN_SQL,CODEGEN_SQL,True,0.95,code|pandas|write pandas,"Matched keywords for route CODEGEN_SQL: ['code', 'pandas', 'write pandas']"
+14,write SQL query to group revenue by region,CODEGEN_SQL,CODEGEN_SQL,True,0.95,sql|query|write sql,"Matched keywords for route CODEGEN_SQL: ['sql', 'query', 'write sql']"
 15,generate code for missing values,CODEGEN_SQL,CODEGEN_SQL,True,0.8,code|generate code,"Matched keywords for route CODEGEN_SQL: ['code', 'generate code']"
 16,give me an analysis plan,PLANNING,PLANNING,True,0.8,plan|analysis plan,"Matched keywords for route PLANNING: ['plan', 'analysis plan']"
 17,what should I do next,PLANNING,PLANNING,True,0.8,what should i do|what should i do next,"Matched keywords for route PLANNING: ['what should i do', 'what should i do next']"
@@ -24,3 +24,13 @@ id,user_question,expected_route,predicted_route,is_correct,confidence,matched_ke
 23,hello there,UNKNOWN,UNKNOWN,True,0.0,,No matching route keywords found.
 24,what is this file about,UNKNOWN,UNKNOWN,True,0.0,,No matching route keywords found.
 25,can you help me,UNKNOWN,UNKNOWN,True,0.0,,No matching route keywords found.
+26,tell me about region,DIRECT_ANALYSIS,DIRECT_ANALYSIS,True,0.75,schema_aware_column_query|column:region,Detected a schema-aware column question for columns: ['region']
+27,describe gross revenue,DIRECT_ANALYSIS,DIRECT_ANALYSIS,True,0.75,schema_aware_column_query|column:gross_revenue,Detected a schema-aware column question for columns: ['gross_revenue']
+28,tell me about discount rate,DIRECT_ANALYSIS,DIRECT_ANALYSIS,True,0.75,schema_aware_column_query|column:discount_rate,Detected a schema-aware column question for columns: ['discount_rate']
+29,cho mình xem giá trị thiếu,DIRECT_ANALYSIS,DIRECT_ANALYSIS,True,0.8,giá trị thiếu|thiếu,"Matched keywords for route DIRECT_ANALYSIS: ['giá trị thiếu', 'thiếu']"
+30,cho mình xem tên cột,DIRECT_ANALYSIS,DIRECT_ANALYSIS,True,0.8,cột|tên cột,"Matched keywords for route DIRECT_ANALYSIS: ['cột', 'tên cột']"
+31,cho mình biết về gross revenue,DIRECT_ANALYSIS,DIRECT_ANALYSIS,True,0.75,schema_aware_column_query|column:gross_revenue,Detected a schema-aware column question for columns: ['gross_revenue']
+32,vẽ biểu đồ gross revenue theo region,VISUALIZATION,VISUALIZATION,True,0.8,vẽ|biểu đồ,"Matched keywords for route VISUALIZATION: ['vẽ', 'biểu đồ']"
+33,tạo kế hoạch phân tích dữ liệu,PLANNING,PLANNING,True,0.65,kế hoạch,Matched keywords for route PLANNING: ['kế hoạch']
+34,viết code pandas để nhóm gross revenue theo region,CODEGEN_SQL,CODEGEN_SQL,True,0.95,code|pandas|viết code,"Matched keywords for route CODEGEN_SQL: ['code', 'pandas', 'viết code']"
+35,tìm insight trong dataset này,EDA_INSIGHT,EDA_INSIGHT,True,0.8,insight|tìm insight,"Matched keywords for route EDA_INSIGHT: ['insight', 'tìm insight']"

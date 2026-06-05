@@ -24,3 +24,13 @@ id,user_question,expected_route
 23,hello there,UNKNOWN
 24,what is this file about,UNKNOWN
 25,can you help me,UNKNOWN
+26,tell me about region,DIRECT_ANALYSIS
+27,describe gross revenue,DIRECT_ANALYSIS
+28,tell me about discount rate,DIRECT_ANALYSIS
+29,cho mình xem giá trị thiếu,DIRECT_ANALYSIS
+30,cho mình xem tên cột,DIRECT_ANALYSIS
+31,cho mình biết về gross revenue,DIRECT_ANALYSIS
+32,vẽ biểu đồ gross revenue theo region,VISUALIZATION
+33,tạo kế hoạch phân tích dữ liệu,PLANNING
+34,viết code pandas để nhóm gross revenue theo region,CODEGEN_SQL
+35,tìm insight trong dataset này,EDA_INSIGHT

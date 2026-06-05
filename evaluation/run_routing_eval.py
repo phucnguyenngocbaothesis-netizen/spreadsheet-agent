@@ -10,13 +10,36 @@ sys.path.append(str(ROOT_DIR))
 
 from agents.fast_router import FastRouterAgent
 
+def make_eval_profile() -> dict:
+    return {
+        "shape": {
+            "rows": 10,
+            "columns": 6,
+        },
+        "columns": [
+            "product",
+            "region",
+            "gross_revenue",
+            "discount_rate",
+            "order_date",
+            "profit",
+        ],
+        "dtypes": {
+            "product": "object",
+            "region": "object",
+            "gross_revenue": "float64",
+            "discount_rate": "float64",
+            "order_date": "datetime64[ns]",
+            "profit": "float64",
+        },
+    }
 
 def run_routing_evaluation(
     input_path: str = "evaluation/data/routing_eval_cases.csv",
     output_path: str = "evaluation/outputs/routing_eval_results.csv",
 ) -> pd.DataFrame:
     router = FastRouterAgent()
-
+    profile = make_eval_profile()
     cases = pd.read_csv(input_path)
 
     results = []
@@ -25,7 +48,8 @@ def run_routing_evaluation(
         user_question = str(row["user_question"])
         expected_route = str(row["expected_route"])
 
-        route_result = router.route(user_question)
+        profile = make_eval_profile()
+        route_result = router.route(user_question, profile)
 
         is_correct = route_result.route == expected_route
 
