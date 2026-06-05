@@ -174,3 +174,80 @@ def test_llm_explanation_agent_explains_chart_result():
 
     assert result.success
     assert result.prompt_type == "chart_explanation"
+
+class FakeShortResponseClient:
+    model_name = "qwen3:4b"
+
+    def get_status(self):
+        class Status:
+            available = True
+            message = "Local LLM available."
+
+        return Status()
+
+    def validate_model(self):
+        class Validation:
+            is_valid = True
+            message = "Model available."
+
+        return Validation()
+
+    def generate(self, *args, **kwargs):
+        return LLMResponse(
+            success=True,
+            content="Too short.",
+            model=self.model_name,
+            provider="local_ollama",
+        )
+
+
+class FakeIncompleteResponseClient:
+    model_name = "qwen3:4b"
+
+    def get_status(self):
+        class Status:
+            available = True
+            message = "Local LLM available."
+
+        return Status()
+
+    def validate_model(self):
+        class Validation:
+            is_valid = True
+            message = "Model available."
+
+        return Validation()
+
+    def generate(self, *args, **kwargs):
+        return LLMResponse(
+            success=True,
+            content="The revenue column has one missing value and",
+            model=self.model_name,
+            provider="local_ollama",
+        )
+
+
+def test_llm_explanation_agent_warns_when_response_too_short():
+    agent = LLMExplanationAgent(FakeShortResponseClient())
+
+    result = agent.explain_eda_result(
+        user_question="show missing values",
+        deterministic_result="Revenue has 1 missing value.",
+        profile=make_profile(),
+    )
+
+    assert result.success
+    assert any("too short" in warning for warning in result.warnings)
+
+
+def test_llm_explanation_agent_warns_when_response_incomplete():
+    agent = LLMExplanationAgent(FakeIncompleteResponseClient())
+
+    result = agent.explain_eda_result(
+        user_question="show missing values",
+        deterministic_result="Revenue has 1 missing value.",
+        profile=make_profile(),
+    )
+
+    assert result.success
+    assert any("incomplete" in warning for warning in result.warnings)

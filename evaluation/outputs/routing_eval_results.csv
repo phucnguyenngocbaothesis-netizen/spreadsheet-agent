@@ -1,0 +1,26 @@
+id,user_question,expected_route,predicted_route,is_correct,confidence,matched_keywords,reason
+1,show missing values,DIRECT_ANALYSIS,DIRECT_ANALYSIS,True,0.65,missing,Matched keywords for route DIRECT_ANALYSIS: ['missing']
+2,show duplicate rows,DIRECT_ANALYSIS,DIRECT_ANALYSIS,True,0.8,rows|duplicate,"Matched keywords for route DIRECT_ANALYSIS: ['rows', 'duplicate']"
+3,show numeric summary,DIRECT_ANALYSIS,DIRECT_ANALYSIS,True,0.65,numeric summary,Matched keywords for route DIRECT_ANALYSIS: ['numeric summary']
+4,show categorical summary,DIRECT_ANALYSIS,DIRECT_ANALYSIS,True,0.65,categorical summary,Matched keywords for route DIRECT_ANALYSIS: ['categorical summary']
+5,show sample rows,DIRECT_ANALYSIS,DIRECT_ANALYSIS,True,0.8,rows|sample rows,"Matched keywords for route DIRECT_ANALYSIS: ['rows', 'sample rows']"
+6,draw bar chart of revenue by product,VISUALIZATION,VISUALIZATION,True,0.95,chart|bar chart|draw,"Matched keywords for route VISUALIZATION: ['chart', 'bar chart', 'draw']"
+7,show histogram of revenue,VISUALIZATION,VISUALIZATION,True,0.65,histogram,Matched keywords for route VISUALIZATION: ['histogram']
+8,show line chart of revenue over order date,VISUALIZATION,VISUALIZATION,True,0.8,chart|line chart,"Matched keywords for route VISUALIZATION: ['chart', 'line chart']"
+9,show scatter plot of quantity and revenue,VISUALIZATION,VISUALIZATION,True,0.8,plot|scatter,"Matched keywords for route VISUALIZATION: ['plot', 'scatter']"
+10,find insights,EDA_INSIGHT,EDA_INSIGHT,True,0.65,insight,Matched keywords for route EDA_INSIGHT: ['insight']
+11,analyze this dataset,EDA_INSIGHT,EDA_INSIGHT,True,0.65,analyze,Matched keywords for route EDA_INSIGHT: ['analyze']
+12,find trends in this dataset,EDA_INSIGHT,EDA_INSIGHT,True,0.65,trend,Matched keywords for route EDA_INSIGHT: ['trend']
+13,write pandas code to group revenue by region,CODEGEN_SQL,CODEGEN_SQL,True,0.8,code|pandas,"Matched keywords for route CODEGEN_SQL: ['code', 'pandas']"
+14,write SQL query to group revenue by region,CODEGEN_SQL,CODEGEN_SQL,True,0.8,sql|query,"Matched keywords for route CODEGEN_SQL: ['sql', 'query']"
+15,generate code for missing values,CODEGEN_SQL,CODEGEN_SQL,True,0.8,code|generate code,"Matched keywords for route CODEGEN_SQL: ['code', 'generate code']"
+16,give me an analysis plan,PLANNING,PLANNING,True,0.8,plan|analysis plan,"Matched keywords for route PLANNING: ['plan', 'analysis plan']"
+17,what should I do next,PLANNING,PLANNING,True,0.8,what should i do|what should i do next,"Matched keywords for route PLANNING: ['what should i do', 'what should i do next']"
+18,create a visualization workflow,PLANNING,PLANNING,True,0.65,workflow,Matched keywords for route PLANNING: ['workflow']
+19,create a cleaning plan,PLANNING,PLANNING,True,0.65,plan,Matched keywords for route PLANNING: ['plan']
+20,explain this for beginner,PERSONALIZATION,PERSONALIZATION,True,0.65,beginner,Matched keywords for route PERSONALIZATION: ['beginner']
+21,make it concise,PERSONALIZATION,PERSONALIZATION,True,0.65,concise,Matched keywords for route PERSONALIZATION: ['concise']
+22,make it technical and detailed,PERSONALIZATION,PERSONALIZATION,True,0.8,technical|detailed,"Matched keywords for route PERSONALIZATION: ['technical', 'detailed']"
+23,hello there,UNKNOWN,UNKNOWN,True,0.0,,No matching route keywords found.
+24,what is this file about,UNKNOWN,UNKNOWN,True,0.0,,No matching route keywords found.
+25,can you help me,UNKNOWN,UNKNOWN,True,0.0,,No matching route keywords found.

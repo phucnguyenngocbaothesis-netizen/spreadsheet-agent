@@ -1,0 +1,26 @@
+id,user_question,expected_route
+1,show missing values,DIRECT_ANALYSIS
+2,show duplicate rows,DIRECT_ANALYSIS
+3,show numeric summary,DIRECT_ANALYSIS
+4,show categorical summary,DIRECT_ANALYSIS
+5,show sample rows,DIRECT_ANALYSIS
+6,draw bar chart of revenue by product,VISUALIZATION
+7,show histogram of revenue,VISUALIZATION
+8,show line chart of revenue over order date,VISUALIZATION
+9,show scatter plot of quantity and revenue,VISUALIZATION
+10,find insights,EDA_INSIGHT
+11,analyze this dataset,EDA_INSIGHT
+12,find trends in this dataset,EDA_INSIGHT
+13,write pandas code to group revenue by region,CODEGEN_SQL
+14,write SQL query to group revenue by region,CODEGEN_SQL
+15,generate code for missing values,CODEGEN_SQL
+16,give me an analysis plan,PLANNING
+17,what should I do next,PLANNING
+18,create a visualization workflow,PLANNING
+19,create a cleaning plan,PLANNING
+20,explain this for beginner,PERSONALIZATION
+21,make it concise,PERSONALIZATION
+22,make it technical and detailed,PERSONALIZATION
+23,hello there,UNKNOWN
+24,what is this file about,UNKNOWN
+25,can you help me,UNKNOWN

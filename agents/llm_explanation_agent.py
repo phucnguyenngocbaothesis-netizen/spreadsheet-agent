@@ -126,6 +126,8 @@ class LLMExplanationAgent:
             )
 
         cleaned_explanation = self._clean_response(llm_response.content)
+        quality_warnings = self._validate_explanation_quality(cleaned_explanation)
+        warnings.extend(quality_warnings)
 
         return LLMExplanationResult(
             success=True,
@@ -145,3 +147,38 @@ class LLMExplanationAgent:
             return "The LLM returned an empty explanation."
 
         return cleaned
+    
+    def _validate_explanation_quality(self, explanation: str) -> list[str]:
+        warnings: list[str] = []
+
+        stripped = explanation.strip()
+
+        if not stripped:
+            warnings.append("LLM explanation is empty.")
+            return warnings
+
+        word_count = len(stripped.split())
+
+        if word_count < 15:
+            warnings.append("LLM explanation may be too short.")
+
+        if word_count > 250:
+            warnings.append("LLM explanation may be too long.")
+
+        incomplete_endings = (
+            ",",
+            ":",
+            ";",
+            "(",
+            "[",
+            "and",
+            "or",
+            "but",
+        )
+
+        lower_stripped = stripped.lower()
+
+        if lower_stripped.endswith(incomplete_endings):
+            warnings.append("LLM explanation may be incomplete or cut off.")
+
+        return warnings

@@ -118,23 +118,50 @@ def render_optional_llm_explanation(
 
     st.subheader(title)
 
-    st.json(
-        {
-            "success": explanation_result.success,
-            "source": explanation_result.source,
-            "model": explanation_result.model,
-            "fallback_used": explanation_result.fallback_used,
-            "prompt_type": explanation_result.prompt_type,
-            "warnings": explanation_result.warnings,
-            "error": explanation_result.error,
-        }
-    )
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.metric(
+            "LLM Success",
+            "Yes" if explanation_result.success else "No",
+        )
+
+    with col2:
+        st.metric(
+            "Fallback Used",
+            "Yes" if explanation_result.fallback_used else "No",
+        )
+
+    with col3:
+        st.metric(
+            "Model",
+            explanation_result.model,
+        )
+
+    with st.expander("LLM Metadata"):
+        st.json(
+            {
+                "success": explanation_result.success,
+                "source": explanation_result.source,
+                "model": explanation_result.model,
+                "fallback_used": explanation_result.fallback_used,
+                "prompt_type": explanation_result.prompt_type,
+                "error": explanation_result.error,
+            }
+        )
+
+    if explanation_result.warnings:
+        st.warning("LLM warnings detected.")
+        for warning in explanation_result.warnings:
+            st.write(f"- {warning}")
 
     if explanation_result.fallback_used:
         st.warning(explanation_result.explanation)
         return
 
+    st.markdown("### LLM Explanation")
     st.markdown(explanation_result.explanation)
+
 st.sidebar.header("LLM Settings")
 
 enable_llm_explanation = st.sidebar.checkbox(
