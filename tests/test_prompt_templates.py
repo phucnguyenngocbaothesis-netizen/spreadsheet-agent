@@ -1,3 +1,5 @@
+from prompt_toolkit import prompt
+
 from llm.prompt_templates import PromptTemplates
 
 
@@ -19,6 +21,8 @@ def test_eda_explanation_prompt_contains_required_parts():
     assert "Column revenue has 2 missing values" in prompt
     assert "Rows: 10" in prompt
     assert "Do not invent numbers" in prompt
+    assert "Write complete sentences" in prompt
+    assert "Output format" in prompt
 
 
 def test_chart_explanation_prompt_contains_required_parts():
@@ -38,3 +42,5 @@ def test_chart_explanation_prompt_contains_required_parts():
     assert "bar" in prompt
     assert "Laptop has the highest revenue" in prompt
     assert "Do not invent values" in prompt
+    assert "Chart type and variables" in prompt
+    assert "Key observations" in prompt

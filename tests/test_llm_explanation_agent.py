@@ -1,0 +1,176 @@
+from agents.llm_explanation_agent import LLMExplanationAgent
+from llm.local_llm_client import LLMResponse
+
+
+class FakeUnavailableClient:
+    model_name = "fake-model"
+
+    def get_status(self):
+        class Status:
+            available = False
+            message = "Local LLM unavailable."
+
+        return Status()
+
+    def validate_model(self):
+        raise AssertionError("validate_model should not be called when server is unavailable.")
+
+    def generate(self, *args, **kwargs):
+        raise AssertionError("generate should not be called when server is unavailable.")
+
+
+class FakeInvalidModelClient:
+    model_name = "missing-model"
+
+    def get_status(self):
+        class Status:
+            available = True
+            message = "Local LLM available."
+
+        return Status()
+
+    def validate_model(self):
+        class Validation:
+            is_valid = False
+            message = "Model not found."
+
+        return Validation()
+
+    def generate(self, *args, **kwargs):
+        raise AssertionError("generate should not be called when model is invalid.")
+
+
+class FakeSuccessfulClient:
+    model_name = "qwen3:4b"
+
+    def get_status(self):
+        class Status:
+            available = True
+            message = "Local LLM available."
+
+        return Status()
+
+    def validate_model(self):
+        class Validation:
+            is_valid = True
+            message = "Model available."
+
+        return Validation()
+
+    def generate(self, *args, **kwargs):
+        return LLMResponse(
+            success=True,
+            content="This is a grounded explanation.",
+            model=self.model_name,
+            provider="local_ollama",
+        )
+
+
+class FakeFailedGenerationClient:
+    model_name = "qwen3:4b"
+
+    def get_status(self):
+        class Status:
+            available = True
+            message = "Local LLM available."
+
+        return Status()
+
+    def validate_model(self):
+        class Validation:
+            is_valid = True
+            message = "Model available."
+
+        return Validation()
+
+    def generate(self, *args, **kwargs):
+        return LLMResponse(
+            success=False,
+            content="",
+            model=self.model_name,
+            provider="local_ollama",
+            error="Generation failed.",
+        )
+
+
+def make_profile():
+    return {
+        "shape": {
+            "rows": 10,
+            "columns": 3,
+        }
+    }
+
+
+def test_llm_explanation_agent_uses_fallback_when_server_unavailable():
+    agent = LLMExplanationAgent(FakeUnavailableClient())
+
+    result = agent.explain_eda_result(
+        user_question="show missing values",
+        deterministic_result="No missing values.",
+        profile=make_profile(),
+    )
+
+    assert not result.success
+    assert result.fallback_used
+    assert result.source == "deterministic_fallback"
+
+
+def test_llm_explanation_agent_uses_fallback_when_model_invalid():
+    agent = LLMExplanationAgent(FakeInvalidModelClient())
+
+    result = agent.explain_eda_result(
+        user_question="show missing values",
+        deterministic_result="No missing values.",
+        profile=make_profile(),
+    )
+
+    assert not result.success
+    assert result.fallback_used
+    assert "Model not found" in result.error
+
+
+def test_llm_explanation_agent_returns_successful_explanation():
+    agent = LLMExplanationAgent(FakeSuccessfulClient())
+
+    result = agent.explain_eda_result(
+        user_question="show missing values",
+        deterministic_result="No missing values.",
+        profile=make_profile(),
+    )
+
+    assert result.success
+    assert not result.fallback_used
+    assert result.source == "local_llm"
+    assert "grounded explanation" in result.explanation
+
+
+def test_llm_explanation_agent_handles_generation_failure():
+    agent = LLMExplanationAgent(FakeFailedGenerationClient())
+
+    result = agent.explain_eda_result(
+        user_question="show missing values",
+        deterministic_result="No missing values.",
+        profile=make_profile(),
+    )
+
+    assert not result.success
+    assert result.fallback_used
+    assert "Generation failed" in result.error
+
+
+def test_llm_explanation_agent_explains_chart_result():
+    agent = LLMExplanationAgent(FakeSuccessfulClient())
+
+    result = agent.explain_chart_result(
+        user_question="draw revenue by product",
+        chart_metadata={
+            "chart_type": "bar",
+            "x_column": "product",
+            "y_column": "revenue",
+        },
+        chart_insights_markdown="Laptop has highest revenue.",
+    )
+
+    assert result.success
+    assert result.prompt_type == "chart_explanation"

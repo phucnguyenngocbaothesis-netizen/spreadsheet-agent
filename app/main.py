@@ -8,6 +8,8 @@ import streamlit as st
 ROOT_DIR = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT_DIR))
 
+from agents.llm_explanation_agent import LLMExplanationAgent
+from llm.model_utils import ModelUtils
 from llm.local_llm_client import LocalLLMClient
 from llm.prompt_templates import PromptTemplates
 from agents.direct_analysis import DirectAnalysisAgent
@@ -19,7 +21,6 @@ from agents.codegen_sql import CodegenSQLAgent
 from agents.planning_agent import PlanningAgent
 from agents.personalization_agent import PersonalizationAgent
 
-local_llm_client = LocalLLMClient()
 pipeline = SpreadsheetPipeline()
 direct_analysis_agent = DirectAnalysisAgent()
 fast_router_agent = FastRouterAgent()
@@ -28,6 +29,11 @@ eda_insight_agent = EDAInsightAgent()
 codegen_sql_agent = CodegenSQLAgent()
 planning_agent = PlanningAgent()
 personalization_agent = PersonalizationAgent()
+
+@st.cache_data(ttl=30)
+def get_cached_llm_models() -> list[str]:
+    client = LocalLLMClient()
+    return client.list_models()
 
 st.set_page_config(
     page_title="Spreadsheet Agent - Week 1",
@@ -102,18 +108,85 @@ def render_text_output(title: str, content: str) -> None:
     )
 
     st.markdown(personalization_result.personalized_content)
-st.sidebar.header("LLM Settings")
-
+ 
 def render_optional_llm_explanation(
     title: str,
-    prompt: str,
-    system_prompt: str = "Explain the result clearly and do not invent values.",
+    explanation_result,
 ) -> None:
     if not enable_llm_explanation:
         return
 
     st.subheader(title)
 
+    st.json(
+        {
+            "success": explanation_result.success,
+            "source": explanation_result.source,
+            "model": explanation_result.model,
+            "fallback_used": explanation_result.fallback_used,
+            "prompt_type": explanation_result.prompt_type,
+            "warnings": explanation_result.warnings,
+            "error": explanation_result.error,
+        }
+    )
+
+    if explanation_result.fallback_used:
+        st.warning(explanation_result.explanation)
+        return
+
+    st.markdown(explanation_result.explanation)
+st.sidebar.header("LLM Settings")
+
+enable_llm_explanation = st.sidebar.checkbox(
+    "Enable optional LLM explanation",
+    value=False,
+)
+
+available_llm_models = get_cached_llm_models()
+available_llm_models = ModelUtils.sort_models(available_llm_models)
+
+if available_llm_models:
+    model_options = [
+        ModelUtils.format_model_option(model)
+        for model in available_llm_models
+    ]
+
+    default_model = (
+        "qwen3:4b"
+        if "qwen3:4b" in available_llm_models
+        else available_llm_models[0]
+    )
+
+    default_model_option = ModelUtils.format_model_option(default_model)
+    default_model_index = model_options.index(default_model_option)
+
+    selected_model_option = st.sidebar.selectbox(
+        "Local LLM model",
+        options=model_options,
+        index=default_model_index,
+    )
+
+    llm_model_name = ModelUtils.extract_model_name(selected_model_option)
+
+    st.sidebar.caption(
+        ModelUtils.get_model_recommendation(llm_model_name)
+    )
+
+else:
+    llm_model_name = st.sidebar.text_input(
+        "Local LLM model",
+        value="llama3.1:8b",
+    )
+
+    st.sidebar.warning(
+        "No local Ollama models detected. You can still type a model name manually."
+    )
+
+local_llm_client = LocalLLMClient(model_name=llm_model_name)
+llm_explanation_agent = LLMExplanationAgent(local_llm_client)
+
+
+if enable_llm_explanation:
     llm_status = local_llm_client.get_status()
     llm_model_validation = local_llm_client.validate_model()
 
@@ -127,61 +200,6 @@ def render_optional_llm_explanation(
             "model_valid": llm_model_validation.is_valid,
             "model_message": llm_model_validation.message,
             "available_models": llm_model_validation.available_models,
-        }
-    )
-
-    if not llm_status.available:
-        st.warning(llm_status.message)
-        return
-
-    model_validation = local_llm_client.validate_model()
-
-    if not model_validation.is_valid:
-        st.warning(model_validation.message)
-
-        if model_validation.available_models:
-            st.info(
-                "Available local models: "
-                + ", ".join(model_validation.available_models)
-            )
-
-        return
-
-    llm_response = local_llm_client.generate(
-        prompt=prompt,
-        system_prompt=system_prompt,
-        temperature=0.2,
-        max_tokens=512,
-    )
-
-    if not llm_response.success:
-        st.warning(f"LLM explanation failed: {llm_response.error}")
-        return
-
-    st.markdown(llm_response.content)
-
-enable_llm_explanation = st.sidebar.checkbox(
-    "Enable optional LLM explanation",
-    value=False,
-)
-
-llm_model_name = st.sidebar.text_input(
-    "Local LLM model",
-    value="llama3.1:8b",
-)
-
-local_llm_client = LocalLLMClient(model_name=llm_model_name)
-
-if enable_llm_explanation:
-    llm_status = local_llm_client.get_status()
-
-    st.sidebar.json(
-        {
-            "available": llm_status.available,
-            "provider": llm_status.provider,
-            "model": llm_status.model,
-            "base_url": llm_status.base_url,
-            "message": llm_status.message,
         }
     )
 else:
@@ -256,15 +274,16 @@ try:
             answer = direct_analysis_agent.answer(question, profile)
             render_text_output("Direct Analysis Result", answer)
 
-            llm_prompt = PromptTemplates.eda_explanation_prompt(
+            llm_explanation_result = llm_explanation_agent.explain_eda_result(
                 user_question=question,
                 deterministic_result=answer,
                 profile=profile,
             )
+
             render_optional_llm_explanation(
-                title="LLM Explanation",
-                prompt=llm_prompt
-            )
+                title="Optional LLM Explanation",
+                explanation_result=llm_explanation_result,
+            )               
 
         elif route_result.route == "VISUALIZATION":
             try:
@@ -303,16 +322,16 @@ try:
                     "reason": chart_result.reason,
                 }
 
-                llm_prompt = PromptTemplates.chart_explanation_prompt(
+                llm_explanation_result = llm_explanation_agent.explain_chart_result(
                     user_question=question,
                     chart_metadata=chart_metadata,
                     chart_insights_markdown=chart_insight_markdown,
                 )
-                render_optional_llm_explanation(
-                    title="Optional LLM Explanation",
-                    prompt=llm_prompt,
-                )
 
+                render_optional_llm_explanation(
+                    title="Optional LLM Chart Explanation",
+                    explanation_result=llm_explanation_result,
+                )
             except Exception as chart_error:
                 st.error("Failed to build chart.")
                 st.error(str(chart_error))
@@ -323,14 +342,15 @@ try:
 
             render_text_output("EDA Insights Results", insight_markdown)
 
-            llm_prompt = PromptTemplates.eda_explanation_prompt(
+            llm_explanation_result = llm_explanation_agent.explain_eda_result(
                 user_question=question,
                 deterministic_result=insight_markdown,
                 profile=profile,
             )
+
             render_optional_llm_explanation(
-                title="LLM Explanation",
-                prompt=llm_prompt,
+                title="Optional LLM Insight Explanation",
+                explanation_result=llm_explanation_result,
             )
 
         elif route_result.route == "CODEGEN_SQL":
