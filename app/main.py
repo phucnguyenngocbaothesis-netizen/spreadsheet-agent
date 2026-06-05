@@ -9,6 +9,7 @@ sys.path.append(str(ROOT_DIR))
 
 from storage.sqlite_store import SQLiteStore
 
+from agents.prompt_quality_agent import PromptQualityAgent
 from agents.llm_explanation_agent import LLMExplanationAgent
 from llm.model_utils import ModelUtils
 from llm.local_llm_client import LocalLLMClient
