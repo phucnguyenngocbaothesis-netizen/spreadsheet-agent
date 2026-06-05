@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 
+
 class PromptTemplates:
     """
     Week 10:
@@ -81,3 +82,39 @@ Output format:
 2. Key observations
 3. Short conclusion
 """.strip()
+    
+    @staticmethod
+    def eda_explanation_with_table_context_prompt(
+        user_question: str,
+        deterministic_result: str,
+        table_context_markdown: str,
+    ) -> str:
+        return f"""
+    You are explaining spreadsheet analysis results.
+
+    User question:
+    {user_question}
+
+    Deterministic result:
+    {deterministic_result}
+
+    Query-aware table context:
+    {table_context_markdown}
+
+    Task:
+    Explain the deterministic result clearly using the selected table context.
+
+    Rules:
+    - Do not invent numbers.
+    - Do not add unsupported claims.
+    - Only use the deterministic result and query-aware table context.
+    - Write complete sentences.
+    - Keep the answer concise.
+    - Use bullet points when listing columns or findings.
+    - End with one short conclusion.
+
+    Output format:
+    1. Main finding
+    2. Relevant table context
+    3. Short conclusion
+    """.strip()

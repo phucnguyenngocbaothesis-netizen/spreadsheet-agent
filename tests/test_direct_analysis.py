@@ -115,3 +115,58 @@ def test_answer_sample_rows():
 
     assert "Laptop" in answer
     assert "HCMC" in answer
+
+def test_answer_column_summary_for_numeric_column():
+    agent = DirectAnalysisAgent()
+
+    profile = make_profile()
+
+    answer = agent.answer("tell me about revenue", profile)
+
+    assert "Column summary" in answer
+    assert "revenue" in answer
+    assert "numeric" in answer
+    assert "Mean" in answer or "Mean:" in answer
+
+
+def test_answer_column_summary_with_spaces_matches_underscore_column():
+    agent = DirectAnalysisAgent()
+
+    profile = {
+        "shape": {
+            "rows": 3,
+            "columns": 1,
+        },
+        "columns": ["input_values"],
+        "dtypes": {
+            "input_values": "object",
+        },
+        "missing_values": {
+            "input_values": 0,
+        },
+        "missing_percentage": {
+            "input_values": 0.0,
+        },
+        "duplicate_rows": 0,
+        "sample_rows": [
+            {"input_values": "show missing values"},
+            {"input_values": "draw chart"},
+        ],
+        "numeric_summary": {},
+        "categorical_summary": {
+            "input_values": {
+                "unique_count": 2,
+                "top_values": {
+                    "show missing values": 1,
+                    "draw chart": 1,
+                },
+            }
+        },
+    }
+
+    answer = agent.answer("tell me about the input values", profile)
+
+    assert "Column summary" in answer
+    assert "input_values" in answer
+    assert "categorical" in answer
+    assert "show missing values" in answer

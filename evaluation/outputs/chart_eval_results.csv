@@ -1,0 +1,9 @@
+id,user_question,expected_chart_type,predicted_chart_type,chart_type_correct,expected_x_column,predicted_x_column,x_column_correct,expected_y_column,predicted_y_column,y_column_correct,is_correct,reason
+1,draw bar chart of revenue by product,bar,bar,True,product,product,True,revenue,revenue,True,True,Recommended bar chart because the request uses one categorical column and one numeric column.
+2,visualize revenue by region,bar,bar,True,region,region,True,revenue,revenue,True,True,Recommended bar chart because the request uses one categorical column and one numeric column.
+3,show histogram of revenue,histogram,histogram,True,revenue,revenue,True,,,True,True,Recommended histogram because the request asks for the distribution of one numeric column.
+4,show distribution of quantity,histogram,histogram,True,quantity,quantity,True,,,True,True,Recommended histogram because the request asks for the distribution of one numeric column.
+5,show line chart of revenue over order date,line,line,True,order_date,order_date,True,revenue,revenue,True,True,Recommended line chart because the request uses a datetime column and a numeric column.
+6,show revenue trend over order date,line,line,True,order_date,order_date,True,revenue,revenue,True,True,Recommended line chart because the request uses a datetime column and a numeric column.
+7,show scatter plot of quantity and revenue,scatter,scatter,True,quantity,quantity,True,revenue,revenue,True,True,Recommended scatter plot because the request uses two numeric columns.
+8,show scatter plot of discount rate and revenue,scatter,scatter,True,discount_rate,discount_rate,True,revenue,revenue,True,True,Recommended scatter plot because the request uses two numeric columns.

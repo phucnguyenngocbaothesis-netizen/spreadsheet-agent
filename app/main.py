@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import sys
 from pathlib import Path
 
@@ -7,6 +5,8 @@ import streamlit as st
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT_DIR))
+
+from storage.sqlite_store import SQLiteStore
 
 from agents.llm_explanation_agent import LLMExplanationAgent
 from llm.model_utils import ModelUtils
@@ -29,6 +29,7 @@ eda_insight_agent = EDAInsightAgent()
 codegen_sql_agent = CodegenSQLAgent()
 planning_agent = PlanningAgent()
 personalization_agent = PersonalizationAgent()
+sqlite_store = SQLiteStore()
 
 @st.cache_data(ttl=30)
 def get_cached_llm_models() -> list[str]:
@@ -36,11 +37,11 @@ def get_cached_llm_models() -> list[str]:
     return client.list_models()
 
 st.set_page_config(
-    page_title="Spreadsheet Agent - Week 1",
+    page_title="Spreadsheet Agent",
     layout="wide",
 )
 
-st.title("Spreadsheet Agent - Week 1 Prototype")
+st.title("Spreadsheet Agent")
 
 st.markdown(
     """
@@ -55,25 +56,86 @@ This prototype supports:
 
 st.sidebar.header("User Profile")
 
-user_role = st.sidebar.text_input("Role", value="student")
+user_id = st.sidebar.text_input(
+    "User ID",
+    value="default_user",
+)
+
+stored_profile = sqlite_store.load_user_profile(user_id)
+
+default_role = stored_profile.role if stored_profile else "student"
+default_technical_level = (
+    stored_profile.technical_level if stored_profile else "beginner"
+)
+default_response_style = (
+    stored_profile.response_style if stored_profile else "balanced"
+)
+default_preferred_format = (
+    stored_profile.preferred_format if stored_profile else "bullet"
+)
+
+technical_level_options = ["beginner", "intermediate", "advanced"]
+response_style_options = ["concise", "balanced", "detailed"]
+preferred_format_options = ["bullet", "paragraph", "step_by_step"]
+
+user_role = st.sidebar.text_input(
+    "Role",
+    value=default_role,
+)
 
 technical_level = st.sidebar.selectbox(
     "Technical level",
-    options=["beginner", "intermediate", "advanced"],
-    index=0,
+    options=technical_level_options,
+    index=technical_level_options.index(default_technical_level)
+    if default_technical_level in technical_level_options
+    else 0,
 )
 
 response_style = st.sidebar.selectbox(
     "Response style",
-    options=["concise", "balanced", "detailed"],
-    index=1,
+    options=response_style_options,
+    index=response_style_options.index(default_response_style)
+    if default_response_style in response_style_options
+    else 1,
 )
 
 preferred_format = st.sidebar.selectbox(
     "Preferred format",
-    options=["bullet", "paragraph", "step_by_step"],
-    index=0,
+    options=preferred_format_options,
+    index=preferred_format_options.index(default_preferred_format)
+    if default_preferred_format in preferred_format_options
+    else 0,
 )
+
+if st.sidebar.button("Save User Profile"):
+    sqlite_store.save_user_profile(
+        user_id=user_id,
+        role=user_role,
+        technical_level=technical_level,
+        response_style=response_style,
+        preferred_format=preferred_format,
+    )
+    st.sidebar.success("User profile saved.")
+
+st.sidebar.header("Recent Questions")
+
+recent_history = sqlite_store.load_recent_chat_history(
+    user_id=user_id,
+    limit=5,
+)
+
+if not recent_history:
+    st.sidebar.caption("No recent questions yet.")
+else:
+    for message in recent_history:
+        st.sidebar.markdown(
+            f"- `{message.route}`: {message.question}"
+        )
+
+if st.sidebar.button("Clear Chat History"):
+    sqlite_store.clear_chat_history(user_id)
+    st.sidebar.success("Chat history cleared.")
+    st.rerun()
 
 user_profile = personalization_agent.create_profile(
     role=user_role,
@@ -285,7 +347,8 @@ try:
     )
 
     if question:
-        route_result = fast_router_agent.route(question)
+        route_result = fast_router_agent.route(question, profile)
+        answer_preview = ""
 
         st.subheader("Route Result")
         st.json(
@@ -299,11 +362,13 @@ try:
 
         if route_result.route == "DIRECT_ANALYSIS":
             answer = direct_analysis_agent.answer(question, profile)
+            answer_preview = answer
             render_text_output("Direct Analysis Result", answer)
 
-            llm_explanation_result = llm_explanation_agent.explain_eda_result(
+            llm_explanation_result = llm_explanation_agent.explain_eda_result_with_table_context(
                 user_question=question,
                 deterministic_result=answer,
+                df=df,
                 profile=profile,
             )
 
@@ -315,7 +380,10 @@ try:
         elif route_result.route == "VISUALIZATION":
             try:
                 chart_result = chart_builder_agent.build_chart(question, df)
-
+                answer_preview = (
+                    f"Created {chart_result.chart_type} chart with "
+                    f"x={chart_result.x_column}, y={chart_result.y_column}."
+                )
                 st.subheader("Chart Result")
                 st.json(
                     {
@@ -366,12 +434,14 @@ try:
         elif route_result.route == "EDA_INSIGHT":
             insight_result = eda_insight_agent.generate_insights(profile)
             insight_markdown = eda_insight_agent.format_result_as_markdown(insight_result)
+            answer_preview = insight_markdown
 
             render_text_output("EDA Insights Results", insight_markdown)
 
-            llm_explanation_result = llm_explanation_agent.explain_eda_result(
+            llm_explanation_result = llm_explanation_agent.explain_eda_result_with_table_context(
                 user_question=question,
                 deterministic_result=insight_markdown,
+                df=df,
                 profile=profile,
             )
 
@@ -382,6 +452,7 @@ try:
 
         elif route_result.route == "CODEGEN_SQL":
             codegen_result = codegen_sql_agent.generate(question, profile)
+            answer_preview = codegen_result.explanation
 
             st.subheader("Codegen / SQL Result")
 
@@ -402,6 +473,7 @@ try:
         elif route_result.route == "PLANNING":
             planning_result = planning_agent.create_plan(question, profile)
             planning_markdown = planning_agent.format_result_as_markdown(planning_result)
+            answer_preview = planning_markdown
 
             render_text_output("Planning Result", planning_markdown)
 
@@ -427,6 +499,8 @@ try:
                 content=base_content,
                 profile=user_profile,
             )
+            answer_preview = personalization_result.personalized_content
+
 
             st.subheader("Personalization Result")
 
@@ -439,6 +513,17 @@ try:
             )
 
             st.markdown(personalization_result.personalized_content)
+
+        dataset_name = getattr(uploaded_file, "name", "uploaded_dataset")
+
+        if answer_preview:
+            sqlite_store.save_chat_message(
+                user_id=user_id,
+                dataset_name=dataset_name,
+                question=question,
+                route=route_result.route,
+                answer_preview=answer_preview,
+            )
 
         else:
             st.info(

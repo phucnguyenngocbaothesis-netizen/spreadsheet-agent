@@ -1,0 +1,29 @@
+id,user_question,expected_mode,predicted_mode,mode_correct,expected_code_type,predicted_code_type,code_type_correct,expected_contains,contains_correct,expected_warning_contains,warning_text,warning_correct,is_correct,code
+1,write pandas code to group revenue by region,pandas,pandas,True,pandas_groupby_sum,pandas_groupby_sum,True,groupby,True,,,True,True,"grouped = df.groupby(""region"", as_index=False)[""revenue""].sum()
+grouped = grouped.sort_values(""revenue"", ascending=False)
+grouped"
+2,write pandas code to show missing values,pandas,pandas,True,pandas_missing_summary,pandas_missing_summary,True,isna,True,,,True,True,"missing_summary = df.isna().sum().reset_index()
+missing_summary.columns = ['column', 'missing_count']
+missing_summary['missing_percentage'] = (
+    missing_summary['missing_count'] / len(df) * 100
+)
+missing_summary"
+3,write pandas code for numeric summary,pandas,pandas,True,pandas_describe,pandas_describe,True,describe,True,,,True,True,df.describe()
+4,give me pandas preview code,pandas,pandas,True,pandas_preview,pandas_preview,True,df.head,True,,,True,True,df.head()
+5,write SQL query to group revenue by region,sql,sql,True,sql_groupby_sum,sql_groupby_sum,True,GROUP BY,True,,The table name is assumed to be uploaded_table.,True,True,"SELECT
+    ""region"",
+    SUM(""revenue"") AS ""total_revenue""
+FROM uploaded_table
+GROUP BY ""region""
+ORDER BY ""total_revenue"" DESC;"
+6,write SQL query to count missing values,sql,sql,True,sql_missing_summary,sql_missing_summary,True,CASE WHEN,True,,SQL missing-value checks are generated column by column. | The table name is assumed to be uploaded_table.,True,True,"SELECT
+    SUM(CASE WHEN ""product"" IS NULL THEN 1 ELSE 0 END) AS ""product_missing"",
+    SUM(CASE WHEN ""region"" IS NULL THEN 1 ELSE 0 END) AS ""region_missing"",
+    SUM(CASE WHEN ""revenue"" IS NULL THEN 1 ELSE 0 END) AS ""revenue_missing"",
+    SUM(CASE WHEN ""quantity"" IS NULL THEN 1 ELSE 0 END) AS ""quantity_missing""
+FROM uploaded_table;"
+7,give me SQL preview query,sql,sql,True,sql_fallback_preview,sql_fallback_preview,True,SELECT *,True,,The table name is assumed to be uploaded_table. | This is a fallback SQL template.,True,True,"SELECT *
+FROM uploaded_table
+LIMIT 5;"
+8,write pandas code to group profit by region,pandas,pandas,True,pandas_groupby_failed_invalid_columns,pandas_groupby_failed_invalid_columns,True,requested columns were not found,True,profit,The requested column `profit` does not exist in the dataset.,True,True,# Unable to generate groupby code because requested columns were not found.
+9,write SQL query to group profit by region,sql,sql,True,sql_groupby_failed_invalid_columns,sql_groupby_failed_invalid_columns,True,requested columns were not found,True,profit,The table name is assumed to be uploaded_table. | The requested column `profit` does not exist in the dataset.,True,True,-- Unable to generate GROUP BY query because requested columns were not found.

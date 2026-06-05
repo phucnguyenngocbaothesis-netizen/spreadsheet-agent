@@ -1,0 +1,10 @@
+id,user_question,expected_mode,expected_code_type,expected_contains,expected_warning_contains
+1,write pandas code to group revenue by region,pandas,pandas_groupby_sum,groupby,
+2,write pandas code to show missing values,pandas,pandas_missing_summary,isna,
+3,write pandas code for numeric summary,pandas,pandas_describe,describe,
+4,give me pandas preview code,pandas,pandas_preview,df.head,
+5,write SQL query to group revenue by region,sql,sql_groupby_sum,GROUP BY,
+6,write SQL query to count missing values,sql,sql_missing_summary,CASE WHEN,
+7,give me SQL preview query,sql,sql_fallback_preview,SELECT *,
+8,write pandas code to group profit by region,pandas,pandas_groupby_failed_invalid_columns,requested columns were not found,profit
+9,write SQL query to group profit by region,sql,sql_groupby_failed_invalid_columns,requested columns were not found,profit

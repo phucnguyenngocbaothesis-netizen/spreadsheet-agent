@@ -19,6 +19,11 @@ class DirectAnalysisAgent:
         if self._contains_any(question_lower, ["missing", "null", "nan"]):
             return self._answer_missing_values(profile)
 
+        mentioned_column = self._find_mentioned_column(question_lower, profile)
+
+        if mentioned_column is not None and self._is_column_summary_question(question_lower):
+            return self._answer_column_summary(profile, mentioned_column)
+
         if self._contains_any(question_lower, ["numeric summary", "statistics", "stats", "describe"]):
             return self._answer_numeric_summary(profile)
 
@@ -153,3 +158,127 @@ class DirectAnalysisAgent:
                 lines.append(f"- `{column}`: {value}")
 
         return "Sample rows:\n\n" + "\n".join(lines)
+    
+    def _is_column_summary_question(self, question_lower: str) -> bool:
+        return self._contains_any(
+            question_lower,
+            [
+                "tell me about",
+                "what is",
+                "what are",
+                "describe",
+                "summarize",
+                "summary of",
+                "information about",
+                "explain",
+                "about",
+            ],
+        )
+
+    def _find_mentioned_column(
+        self,
+        question_lower: str,
+        profile: dict[str, Any],
+    ) -> str | None:
+        columns = profile.get("columns", [])
+        normalized_question = self._normalize_text_for_matching(question_lower)
+
+        sorted_columns = sorted(
+            columns,
+            key=lambda column: len(str(column)),
+            reverse=True,
+        )
+
+        for column in sorted_columns:
+            normalized_column = self._normalize_text_for_matching(str(column))
+
+            if normalized_column in normalized_question:
+                return str(column)
+
+        return None
+
+    def _normalize_text_for_matching(self, text: str) -> str:
+        normalized = str(text).lower()
+        normalized = normalized.replace("_", " ")
+        normalized = normalized.replace("-", " ")
+        normalized = normalized.replace('"', " ")
+        normalized = normalized.replace("'", " ")
+        normalized = normalized.replace("`", " ")
+        normalized = " ".join(normalized.split())
+
+        return normalized
+
+    def _answer_column_summary(
+        self,
+        profile: dict[str, Any],
+        column: str,
+    ) -> str:
+        dtypes = profile.get("dtypes", {})
+        missing_values = profile.get("missing_values", {})
+        missing_percentage = profile.get("missing_percentage", {})
+        numeric_summary = profile.get("numeric_summary", {})
+        categorical_summary = profile.get("categorical_summary", {})
+        sample_rows = profile.get("sample_rows", [])
+
+        dtype = dtypes.get(column, "unknown")
+        missing_count = missing_values.get(column, 0)
+        missing_pct = missing_percentage.get(column, 0.0)
+
+        lines = [
+            f"Column summary for `{column}`:",
+            "",
+            f"- Data type: `{dtype}`",
+            f"- Missing values: {missing_count} ({missing_pct}%)",
+        ]
+
+        if column in numeric_summary:
+            stats = numeric_summary[column]
+
+            lines.extend(
+                [
+                    "- Column kind: numeric",
+                    f"- Count: {stats.get('count')}",
+                    f"- Mean: {stats.get('mean')}",
+                    f"- Median: {stats.get('median')}",
+                    f"- Min: {stats.get('min')}",
+                    f"- Max: {stats.get('max')}",
+                ]
+            )
+
+        elif column in categorical_summary:
+            summary = categorical_summary[column]
+            top_values = summary.get("top_values", {})
+
+            lines.extend(
+                [
+                    "- Column kind: categorical",
+                    f"- Unique values: {summary.get('unique_count')}",
+                ]
+            )
+
+            if top_values:
+                lines.append("- Top values:")
+
+                for value, count in top_values.items():
+                    lines.append(f"  - `{value}`: {count}")
+
+        elif "datetime" in dtype.lower():
+            lines.append("- Column kind: datetime")
+
+        else:
+            lines.append("- Column kind: text or unknown")
+
+        sample_values = []
+
+        for row in sample_rows:
+            if column in row and row[column] is not None:
+                sample_values.append(row[column])
+
+        if sample_values:
+            unique_sample_values = list(dict.fromkeys(sample_values))[:5]
+            lines.append("- Sample values:")
+
+            for value in unique_sample_values:
+                lines.append(f"  - `{value}`")
+
+        return "\n".join(lines)

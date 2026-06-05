@@ -3,6 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+import pandas as pd
+
+from agents.table_context_agent import TableContextAgent
+
 from llm.local_llm_client import LocalLLMClient, LLMResponse
 from llm.prompt_templates import PromptTemplates
 
@@ -30,6 +34,7 @@ class LLMExplanationAgent:
 
     def __init__(self, llm_client: LocalLLMClient) -> None:
         self.llm_client = llm_client
+        self.table_context_agent = TableContextAgent()
 
     def explain_eda_result(
         self,
@@ -47,6 +52,39 @@ class LLMExplanationAgent:
             prompt=prompt,
             prompt_type="eda_explanation",
         )
+
+    def explain_eda_result_with_table_context(
+        self,
+        user_question: str,
+        deterministic_result: str,
+        df: pd.DataFrame,
+        profile: dict[str, Any],
+    ) -> LLMExplanationResult:
+        table_context = self.table_context_agent.build_context(
+            question=user_question,
+            df=df,
+            profile=profile,
+        )
+
+        table_context_markdown = self.table_context_agent.format_context_as_markdown(
+            table_context
+        )
+
+        prompt = PromptTemplates.eda_explanation_with_table_context_prompt(
+            user_question=user_question,
+            deterministic_result=deterministic_result,
+            table_context_markdown=table_context_markdown,
+        )
+
+        result = self._generate_explanation(
+            prompt=prompt,
+            prompt_type="eda_explanation_with_table_context",
+        )
+
+        if table_context.warnings:
+            result.warnings.extend(table_context.warnings)
+
+        return result
 
     def explain_chart_result(
         self,

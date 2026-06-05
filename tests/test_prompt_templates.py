@@ -44,3 +44,16 @@ def test_chart_explanation_prompt_contains_required_parts():
     assert "Do not invent values" in prompt
     assert "Chart type and variables" in prompt
     assert "Key observations" in prompt
+
+def test_eda_explanation_with_table_context_prompt_contains_context():
+    prompt = PromptTemplates.eda_explanation_with_table_context_prompt(
+        user_question="tell me about revenue",
+        deterministic_result="Revenue has mean 550.",
+        table_context_markdown="## Query-Aware Table Context\n- Selected columns: revenue",
+    )
+
+    assert "tell me about revenue" in prompt
+    assert "Revenue has mean 550" in prompt
+    assert "Query-aware table context" in prompt
+    assert "Do not invent numbers" in prompt
+    assert "Output format" in prompt

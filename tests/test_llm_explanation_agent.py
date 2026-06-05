@@ -1,5 +1,6 @@
 from agents.llm_explanation_agent import LLMExplanationAgent
 from llm.local_llm_client import LLMResponse
+import pandas as pd
 
 
 class FakeUnavailableClient:
@@ -251,3 +252,63 @@ def test_llm_explanation_agent_warns_when_response_incomplete():
 
     assert result.success
     assert any("incomplete" in warning for warning in result.warnings)
+
+def test_llm_explanation_agent_explains_with_table_context():
+    agent = LLMExplanationAgent(FakeSuccessfulClient())
+
+    df = pd.DataFrame(
+        {
+            "region": ["HCMC", "Hanoi", "Danang"],
+            "revenue": [1200.0, 300.0, 150.0],
+        }
+    )
+
+    profile = {
+        "shape": {
+            "rows": 3,
+            "columns": 2,
+        },
+        "columns": ["region", "revenue"],
+        "dtypes": {
+            "region": "object",
+            "revenue": "float64",
+        },
+        "missing_values": {
+            "region": 0,
+            "revenue": 0,
+        },
+        "missing_percentage": {
+            "region": 0.0,
+            "revenue": 0.0,
+        },
+        "numeric_summary": {
+            "revenue": {
+                "count": 3,
+                "mean": 550.0,
+                "median": 300.0,
+                "min": 150.0,
+                "max": 1200.0,
+            }
+        },
+        "categorical_summary": {
+            "region": {
+                "unique_count": 3,
+                "top_values": {
+                    "HCMC": 1,
+                    "Hanoi": 1,
+                    "Danang": 1,
+                },
+            }
+        },
+    }
+
+    result = agent.explain_eda_result_with_table_context(
+        user_question="tell me about revenue",
+        deterministic_result="Column summary for revenue.",
+        df=df,
+        profile=profile,
+    )
+
+    assert result.success
+    assert result.prompt_type == "eda_explanation_with_table_context"
+    assert result.source == "local_llm"

@@ -1,0 +1,9 @@
+id,case_name,column_name,expected_type,result_type,type_correct,expected_conversion,result_conversion,conversion_correct,is_correct
+1,numeric_with_comma,revenue,numeric,numeric,True,numeric_string_to_number,numeric_string_to_number,True,True
+2,plain_integer,quantity,numeric,numeric,True,numeric_string_to_number,numeric_string_to_number,True,True
+3,percentage_string,discount_rate,numeric,numeric,True,percentage_to_decimal,percentage_to_decimal,True,True
+4,date_iso,order_date,datetime,datetime,True,date_string_to_datetime,date_string_to_datetime,True,True
+5,text_column,product,text,text,True,unchanged,unchanged,True,True
+6,text_region,region,text,text,True,unchanged,unchanged,True,True
+7,mixed_numeric_with_missing,revenue,numeric,numeric,True,numeric_string_to_number,numeric_string_to_number,True,True
+8,mostly_text_code,product_code,text,text,True,unchanged,unchanged,True,True

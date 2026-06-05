@@ -143,3 +143,33 @@ def test_fast_router_personalization_simple():
     result = router.route("make it simple for beginner")
 
     assert result.route == "PERSONALIZATION"
+
+def test_fast_router_schema_aware_column_question():
+    router = FastRouterAgent()
+
+    profile = {
+        "columns": ["input_values", "expected_route"],
+    }
+
+    result = router.route(
+        "tell me about the input values",
+        profile,
+    )
+
+    assert result.route == "DIRECT_ANALYSIS"
+    assert "column:input_values" in result.matched_keywords
+
+
+def test_fast_router_schema_aware_describe_column():
+    router = FastRouterAgent()
+
+    profile = {
+        "columns": ["revenue", "region"],
+    }
+
+    result = router.route(
+        "describe revenue",
+        profile,
+    )
+
+    assert result.route == "DIRECT_ANALYSIS"

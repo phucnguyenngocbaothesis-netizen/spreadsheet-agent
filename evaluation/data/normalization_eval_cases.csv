@@ -1,0 +1,9 @@
+id,case_name,column_name,input_values,expected_type,expected_conversion
+1,numeric_with_comma,revenue,"1,200|150|300",numeric,numeric_string_to_number
+2,plain_integer,quantity,"3|10|5",numeric,numeric_string_to_number
+3,percentage_string,discount_rate,"10%|15%|20%",numeric,percentage_to_decimal
+4,date_iso,order_date,"2026-01-01|2026-01-02|2026-01-03",datetime,date_string_to_datetime
+5,text_column,product,"Laptop|Mouse|Keyboard",text,unchanged
+6,text_region,region,"HCMC|Hanoi|Danang",text,unchanged
+7,mixed_numeric_with_missing,revenue,"1200||300",numeric,numeric_string_to_number
+8,mostly_text_code,product_code,"A001|A002|A003",text,unchanged

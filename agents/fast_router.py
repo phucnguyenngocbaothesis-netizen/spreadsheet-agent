@@ -131,7 +131,11 @@ class FastRouterAgent:
             ],
         }
 
-    def route(self, user_question: str) -> RouteResult:
+    def route(
+        self,
+        user_question: str,
+        profile: dict | None = None,
+    ) -> RouteResult:
         question = user_question.lower().strip()
 
         if not question:
@@ -141,6 +145,14 @@ class FastRouterAgent:
                 matched_keywords=[],
                 reason="Empty user question.",
             )
+        
+        schema_route_result = self._route_schema_aware_question(
+            question=question,
+            profile=profile,
+        )
+
+        if schema_route_result is not None:
+            return schema_route_result
 
         route_scores: dict[str, list[str]] = {}
 
@@ -222,3 +234,87 @@ class FastRouterAgent:
 
         confidence = 0.5 + matched_keyword_count * 0.15
         return min(round(confidence, 2), 0.95)
+    
+    def _route_schema_aware_question(
+        self,
+        question: str,
+        profile: dict | None,
+    ) -> RouteResult | None:
+        if profile is None:
+            return None
+
+        columns = profile.get("columns", [])
+
+        mentioned_columns = self._find_mentioned_columns(
+            question=question,
+            columns=columns,
+        )
+
+        if not mentioned_columns:
+            return None
+
+        column_question_keywords = [
+            "tell me about",
+            "what is",
+            "what are",
+            "describe",
+            "summarize",
+            "summary of",
+            "information about",
+            "explain",
+            "about",
+        ]
+
+        if self._contains_any(question, column_question_keywords):
+            return RouteResult(
+                route=self.ROUTE_DIRECT_ANALYSIS,
+                confidence=0.75,
+                matched_keywords=[
+                    "schema_aware_column_query",
+                    *[f"column:{column}" for column in mentioned_columns],
+                ],
+                reason=(
+                    "Detected a schema-aware column question for columns: "
+                    f"{mentioned_columns}"
+                ),
+            )
+
+        return None
+
+    def _find_mentioned_columns(
+        self,
+        question: str,
+        columns: list[str],
+    ) -> list[str]:
+        normalized_question = self._normalize_text_for_matching(question)
+
+        mentioned_columns = []
+
+        sorted_columns = sorted(
+            columns,
+            key=lambda column: len(str(column)),
+            reverse=True,
+        )
+
+        for column in sorted_columns:
+            column_name = str(column)
+            normalized_column = self._normalize_text_for_matching(column_name)
+
+            if normalized_column in normalized_question:
+                mentioned_columns.append(column_name)
+
+        return mentioned_columns
+
+    def _normalize_text_for_matching(self, text: str) -> str:
+        normalized = str(text).lower()
+        normalized = normalized.replace("_", " ")
+        normalized = normalized.replace("-", " ")
+        normalized = normalized.replace('"', " ")
+        normalized = normalized.replace("'", " ")
+        normalized = normalized.replace("`", " ")
+        normalized = " ".join(normalized.split())
+
+        return normalized
+
+    def _contains_any(self, text: str, keywords: list[str]) -> bool:
+        return any(keyword in text for keyword in keywords)
