@@ -173,3 +173,80 @@ def test_fast_router_schema_aware_describe_column():
     )
 
     assert result.route == "DIRECT_ANALYSIS"
+
+def test_fast_router_loads_keywords_from_json_config(tmp_path):
+    config_path = tmp_path / "route_keywords.json"
+    config_path.write_text(
+        """
+{
+  "DIRECT_ANALYSIS": ["custom_missing_keyword"],
+  "VISUALIZATION": ["custom_chart_keyword"],
+  "EDA_INSIGHT": ["custom_insight_keyword"],
+  "CODEGEN_SQL": ["custom_code_keyword"],
+  "PLANNING": ["custom_plan_keyword"],
+  "PERSONALIZATION": ["custom_personal_keyword"]
+}
+""",
+        encoding="utf-8",
+    )
+
+    router = FastRouterAgent(keyword_config_path=str(config_path))
+
+    result = router.route("custom_missing_keyword")
+
+    assert result.route == "DIRECT_ANALYSIS"
+
+
+def test_fast_router_falls_back_when_keyword_json_missing():
+    router = FastRouterAgent(keyword_config_path="missing_config.json")
+
+    result = router.route("show missing values")
+
+    assert result.route == "DIRECT_ANALYSIS"
+
+
+def test_fast_router_supports_vietnamese_keywords_from_default_json():
+    router = FastRouterAgent()
+
+    result = router.route("cho mình xem giá trị thiếu")
+
+    assert result.route == "DIRECT_ANALYSIS"
+
+def test_fast_router_vietnamese_missing_values():
+    router = FastRouterAgent()
+
+    result = router.route("cho mình xem giá trị thiếu")
+
+    assert result.route == "DIRECT_ANALYSIS"
+
+
+def test_fast_router_vietnamese_chart():
+    router = FastRouterAgent()
+
+    result = router.route("vẽ biểu đồ doanh thu theo khu vực")
+
+    assert result.route == "VISUALIZATION"
+
+
+def test_fast_router_vietnamese_plan():
+    router = FastRouterAgent()
+
+    result = router.route("tạo kế hoạch phân tích dữ liệu")
+
+    assert result.route == "PLANNING"
+
+
+def test_fast_router_vietnamese_schema_column_question():
+    router = FastRouterAgent()
+
+    profile = {
+        "columns": ["gross_revenue", "region"],
+    }
+
+    result = router.route(
+        "cho mình biết về gross revenue",
+        profile,
+    )
+
+    assert result.route == "DIRECT_ANALYSIS"
+    assert "column:gross_revenue" in result.matched_keywords

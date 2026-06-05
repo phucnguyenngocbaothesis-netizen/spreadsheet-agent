@@ -10,14 +10,22 @@ class DirectAnalysisAgent:
     No LLM is used here.
     """
 
-    def answer(self, question: str, profile: dict[str, Any]) -> str:
+    def answer(
+        self,
+        question: str,
+        profile: dict,
+        language: str = "en",
+    ) -> str:
         question_lower = question.lower().strip()
 
-        if self._contains_any(question_lower, ["duplicate", "duplicated"]):
-            return self._answer_duplicates(profile)
+        if self._contains_any(question_lower, ["duplicate", "duplicated",  "trùng", "lặp", "trùng lặp", "dòng trùng"]):
+            return self._answer_duplicates(profile, language)
 
-        if self._contains_any(question_lower, ["missing", "null", "nan"]):
-            return self._answer_missing_values(profile)
+        if self._contains_any(
+            question_lower,
+            ["missing", "null", "nan", "thiếu", "giá trị thiếu", "dữ liệu thiếu"],
+        ):
+            return self._answer_missing_values(profile, language)
 
         mentioned_column = self._find_mentioned_column(question_lower, profile)
 
@@ -75,19 +83,45 @@ class DirectAnalysisAgent:
 
         return f"Detected data types:\n\n{dtype_text}"
 
-    def _answer_missing_values(self, profile: dict[str, Any]) -> str:
-        missing_values = profile["missing_values"]
-        missing_percentage = profile["missing_percentage"]
+    def _answer_missing_values(
+        self,
+        profile: dict,
+        language: str = "en",
+    ) -> str:
+        missing_values = profile.get("missing_values", {})
+        missing_percentage = profile.get("missing_percentage", {})
 
-        rows = []
-        for column, missing_count in missing_values.items():
-            percentage = missing_percentage[column]
-            rows.append(f"- `{column}`: {missing_count} missing values ({percentage}%)")
+        if language == "vi":
+            lines = ["Tóm tắt giá trị thiếu:", ""]
 
-        return "Missing value summary:\n\n" + "\n".join(rows)
+            for column, count in missing_values.items():
+                percentage = missing_percentage.get(column, 0.0)
+                lines.append(
+                    f"- `{column}`: {count} giá trị thiếu ({percentage}%)"
+                )
 
-    def _answer_duplicates(self, profile: dict[str, Any]) -> str:
-        duplicate_rows = profile["duplicate_rows"]
+            return "\n".join(lines)
+
+        lines = ["Missing value summary:", ""]
+
+        for column, count in missing_values.items():
+            percentage = missing_percentage.get(column, 0.0)
+            lines.append(
+                f"- `{column}`: {count} missing values ({percentage}%)"
+            )
+
+        return "\n".join(lines)
+
+
+    def _answer_duplicates(
+        self,
+        profile: dict,
+        language: str = "en",
+    ) -> str:
+        duplicate_rows = profile.get("duplicate_rows", 0)
+
+        if language == "vi":
+            return f"Dataset có **{duplicate_rows} dòng trùng lặp**."
 
         return f"The dataset has **{duplicate_rows} duplicate rows**."
 

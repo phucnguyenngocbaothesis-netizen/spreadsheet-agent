@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 
 import streamlit as st
+from core.language_utils import LanguageUtils
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT_DIR))
@@ -347,6 +348,7 @@ try:
     )
 
     if question:
+        detected_language = LanguageUtils.detect_language(question)
         route_result = fast_router_agent.route(question, profile)
         answer_preview = ""
 
@@ -361,7 +363,11 @@ try:
         )
 
         if route_result.route == "DIRECT_ANALYSIS":
-            answer = direct_analysis_agent.answer(question, profile)
+            answer = direct_analysis_agent.answer(
+                question,
+                profile,
+                language=detected_language,
+            )
             answer_preview = answer
             render_text_output("Direct Analysis Result", answer)
 

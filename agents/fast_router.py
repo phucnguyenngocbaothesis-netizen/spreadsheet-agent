@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+from typing import Any
+
+
 from dataclasses import dataclass
 
 
@@ -28,109 +33,27 @@ class FastRouterAgent:
     ROUTE_CLEANING = "CLEANING"
     ROUTE_EDA_INSIGHT = "EDA_INSIGHT"
     ROUTE_UNKNOWN = "UNKNOWN"
+    DEFAULT_KEYWORD_CONFIG_PATH = "config/route_keywords.json"
 
-    def __init__(self) -> None:
-        self.route_keywords: dict[str, list[str]] = {
-            self.ROUTE_DIRECT_ANALYSIS: [
-                "shape",
-                "size",
-                "rows",
-                "columns",
-                "column names",
-                "data types",
-                "dtype",
-                "missing",
-                "null",
-                "nan",
-                "duplicate",
-                "duplicated",
-                "sample rows",
-                "preview",
-                "head",
-                "first rows",
-                "numeric summary",
-                "statistics",
-                "stats",
-                "describe",
-                "categorical summary",
-                "top values",
-                "value counts",
-                "unique",
-                "distinct",
-            ],
-            self.ROUTE_VISUALIZATION: [
-                "chart",
-                "plot",
-                "visualize",
-                "visualization",
-                "graph",
-                "bar chart",
-                "line chart",
-                "scatter",
-                "histogram",
-                "distribution", 
-                "trend chart",
-                "draw",
-                "show chart",
-            ],
-            self.ROUTE_CODEGEN_SQL: [
-                "code",
-                "pandas",
-                "python code",
-                "sql",
-                "query",
-                "generate code",
-                "write code",
-            ],
-            self.ROUTE_PLANNING: [
-                "plan",
-                "workflow",
-                "steps",
-                "what should i do",
-                "what should i do next",
-                "next steps",
-                "analysis plan",
-                "roadmap",
-                "process",
-                "pipeline",
-            ],
-            self.ROUTE_PERSONALIZATION: [
-                "beginner",
-                "simple",
-                "explain like",
-                "for manager",
-                "for business",
-                "technical",
-                "non-technical",
-                "concise",
-                "detailed",
-                "personalized",
-                "personalize",
-                "customize",
-                "adapt",
-                "make it easier",
-                "make it simpler",
-            ],
-            self.ROUTE_CLEANING: [
-                "clean",
-                "normalize",
-                "fix data",
-                "remove empty",
-                "convert types",
-                "standardize",
-            ],
-            self.ROUTE_EDA_INSIGHT: [
-                "insight",
-                "eda",
-                "analyze",
-                "analysis",
-                "pattern",
-                "trend",
-                "correlation",
-                "outlier",
-            ],
-        }
+    def __init__(
+        self,
+        keyword_config_path: str | None = None,
+    ) -> None:
+        self.keyword_config_path = keyword_config_path or self.DEFAULT_KEYWORD_CONFIG_PATH
 
+        self.route_keywords = self._load_route_keywords(
+            config_path=self.keyword_config_path,
+        )
+
+        self.priority_order = [
+            self.ROUTE_CODEGEN_SQL,
+            self.ROUTE_PLANNING,
+            self.ROUTE_VISUALIZATION,
+            self.ROUTE_PERSONALIZATION,
+            self.ROUTE_CLEANING,
+            self.ROUTE_DIRECT_ANALYSIS,
+            self.ROUTE_EDA_INSIGHT,
+        ]
     def route(
         self,
         user_question: str,
@@ -189,27 +112,153 @@ class FastRouterAgent:
             reason=f"Matched keywords for route {selected_route}: {matched_keywords}",
         )
 
+    def _load_route_keywords(
+        self,
+        config_path: str,
+    ) -> dict[str, list[str]]:
+        path = Path(config_path)
+
+        if not path.exists():
+            return self._get_default_route_keywords()
+
+        try:
+            with path.open("r", encoding="utf-8") as file:
+                loaded_keywords = json.load(file)
+
+            return self._validate_route_keywords(loaded_keywords)
+
+        except (json.JSONDecodeError, OSError, TypeError):
+            return self._get_default_route_keywords()
+
+    def _validate_route_keywords(
+        self,
+        loaded_keywords: dict[str, Any],
+    ) -> dict[str, list[str]]:
+        default_keywords = self._get_default_route_keywords()
+
+        valid_routes = set(default_keywords.keys())
+
+        validated_keywords: dict[str, list[str]] = {}
+
+        for route_name, keywords in loaded_keywords.items():
+            if route_name not in valid_routes:
+                continue
+
+            if not isinstance(keywords, list):
+                continue
+
+            validated_keywords[route_name] = [
+                str(keyword).lower().strip()
+                for keyword in keywords
+                if str(keyword).strip()
+            ]
+
+        for route_name, default_route_keywords in default_keywords.items():
+            if route_name not in validated_keywords:
+                validated_keywords[route_name] = default_route_keywords
+
+        return validated_keywords
+    
+    def _get_default_route_keywords(self) -> dict[str, list[str]]:
+        return {
+            self.ROUTE_DIRECT_ANALYSIS: [
+                "shape",
+                "rows",
+                "columns",
+                "data types",
+                "dtypes",
+                "missing",
+                "null",
+                "nan",
+                "duplicate",
+                "sample",
+                "preview",
+                "numeric summary",
+                "categorical summary",
+                "unique",
+                "unique values",
+                "distinct",
+                "distinct values",
+            ],
+            self.ROUTE_VISUALIZATION: [
+                "chart",
+                "plot",
+                "visualize",
+                "visualization",
+                "graph",
+                "bar chart",
+                "line chart",
+                "histogram",
+                "scatter",
+                "draw",
+                "unique",
+                "unique values",
+                "distinct",
+                "distinct values",
+            ],
+            self.ROUTE_EDA_INSIGHT: [
+                "insight",
+                "insights",
+                "analyze",
+                "analysis",
+                "trend",
+                "patterns",
+                "eda",
+            ],
+            self.ROUTE_CODEGEN_SQL: [
+                "code",
+                "pandas",
+                "sql",
+                "query",
+                "generate code",
+                "write code",
+            ],
+            self.ROUTE_PLANNING: [
+                "plan",
+                "workflow",
+                "steps",
+                "what should i do",
+                "what should i do next",
+                "next steps",
+                "analysis plan",
+                "roadmap",
+                "process",
+                "pipeline",
+            ],
+            self.ROUTE_PERSONALIZATION: [
+                "beginner",
+                "simple",
+                "simplify",
+                "technical",
+                "non-technical",
+                "concise",
+                "detailed",
+                "personalize",
+                "customize",
+                "adapt",
+            ],
+            self.ROUTE_CLEANING: [
+                "clean",
+                "preprocess",
+                "pre-process",
+                "convert types",
+                "handle missing",
+                "handle null",
+                "handle nan",
+                "remove duplicates",
+                "data cleaning",
+                "data preprocessing",
+                "làm sạch",
+                "tiền xử lý",
+                "chuẩn hóa",
+            ],
+        }
+
     def _select_best_route(self, route_scores: dict[str, list[str]]) -> str:
-        """
-        Select route by:
-        1. More matched keywords
-        2. Priority order if tied
-        """
-
-        priority_order = [
-            self.ROUTE_CODEGEN_SQL,
-            self.ROUTE_PLANNING,
-            self.ROUTE_VISUALIZATION,
-            self.ROUTE_PERSONALIZATION,
-            self.ROUTE_CLEANING,
-            self.ROUTE_DIRECT_ANALYSIS,
-            self.ROUTE_EDA_INSIGHT,
-        ]
-
         best_route = None
         best_score = -1
 
-        for route in priority_order:
+        for route in self.priority_order:
             if route not in route_scores:
                 continue
 
@@ -263,9 +312,17 @@ class FastRouterAgent:
             "information about",
             "explain",
             "about",
+            "cho mình biết về",
+            "cho tôi biết về",
+            "nói về",
+            "mô tả",
+            "tóm tắt",
+            "giải thích",
+            "thông tin về",
         ]
 
-        if self._contains_any(question, column_question_keywords):
+        normalized_question = self._normalize_text_for_matching(question)
+        if self._contains_any(normalized_question, column_question_keywords):
             return RouteResult(
                 route=self.ROUTE_DIRECT_ANALYSIS,
                 confidence=0.75,

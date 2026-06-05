@@ -170,3 +170,15 @@ def test_answer_column_summary_with_spaces_matches_underscore_column():
     assert "input_values" in answer
     assert "categorical" in answer
     assert "show missing values" in answer
+
+def test_direct_analysis_answers_missing_values_in_vietnamese():
+    agent = DirectAnalysisAgent()
+
+    answer = agent.answer(
+        "cho mình xem giá trị thiếu",
+        make_profile(),
+        language="vi",
+    )
+
+    assert "giá trị thiếu" in answer
+    assert "revenue" in answer

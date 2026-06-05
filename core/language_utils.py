@@ -3,7 +3,8 @@ from __future__ import annotations
 
 class LanguageUtils:
     """
-    Lightweight language detection for English/Vietnamese user questions.
+    Lightweight English/Vietnamese language detection.
+
     This is rule-based and does not use an LLM.
     """
 
@@ -32,11 +33,12 @@ class LanguageUtils:
         "viết",
         "vẽ",
         "xem",
+        "phân tích",
     ]
 
     @classmethod
     def detect_language(cls, text: str) -> str:
-        text_lower = text.lower()
+        text_lower = str(text).lower()
 
         if any(marker in text_lower for marker in cls.VIETNAMESE_MARKERS):
             return "vi"
