@@ -1,0 +1,117 @@
+{
+  "vague_prompts": [
+    "help",
+    "help me",
+    "can you help me",
+    "tell me something",
+    "give me something",
+    "what can you do",
+    "what should i ask",
+    "do something",
+    "analyze it",
+    "look at this",
+    "xem giúp mình",
+    "giúp mình",
+    "làm gì đó",
+    "nói gì đó"
+  ],
+  "unsupported_patterns": [
+    "train a model",
+    "fit a model",
+    "build a classifier",
+    "build a regression model",
+    "forecast next month",
+    "predict next month",
+    "predict next quarter",
+    "cluster customers",
+    "create full dashboard",
+    "build a dashboard",
+    "power bi",
+    "tableau",
+    "drag and drop",
+    "export cleaned excel",
+    "download cleaned file",
+    "save cleaned dataset"
+  ],
+  "intent_keywords": {
+    "DIRECT_ANALYSIS": [
+      "shape",
+      "columns",
+      "data types",
+      "missing",
+      "duplicate",
+      "numeric summary",
+      "categorical summary",
+      "sample rows",
+      "giá trị thiếu",
+      "dòng trùng",
+      "kiểu dữ liệu",
+      "tên cột"
+    ],
+    "VISUALIZATION": [
+      "chart",
+      "plot",
+      "visualize",
+      "histogram",
+      "scatter",
+      "bar chart",
+      "line chart",
+      "draw",
+      "vẽ",
+      "biểu đồ"
+    ],
+    "EDA_INSIGHT": [
+      "insight",
+      "analyze",
+      "trend",
+      "pattern",
+      "eda",
+      "phân tích",
+      "xu hướng",
+      "nhận xét"
+    ],
+    "CODEGEN_SQL": [
+      "code",
+      "pandas",
+      "sql",
+      "query",
+      "write code",
+      "viết code",
+      "truy vấn"
+    ],
+    "PLANNING": [
+      "plan",
+      "workflow",
+      "steps",
+      "roadmap",
+      "process",
+      "kế hoạch",
+      "quy trình",
+      "các bước"
+    ],
+    "PERSONALIZATION": [
+      "beginner",
+      "simple",
+      "technical",
+      "concise",
+      "detailed",
+      "đơn giản",
+      "ngắn gọn",
+      "chi tiết"
+    ]
+  },
+  "default_suggestions": [
+    "show missing values",
+    "tell me about gross revenue",
+    "draw bar chart of gross revenue by region",
+    "find insights in this dataset",
+    "write pandas code to group gross revenue by region",
+    "create a cleaning plan"
+  ],
+  "unsupported_suggestions": [
+    "create a data cleaning plan",
+    "create an analysis plan",
+    "write pandas code to prepare the dataset",
+    "show numeric summary"
+  ]
+}

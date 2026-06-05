@@ -76,3 +76,46 @@ def test_prompt_quality_detects_vietnamese_multi_intent_prompt():
 
     assert not result.is_acceptable
     assert result.issue_type == "multi_intent_prompt"
+
+def test_prompt_quality_loads_custom_json_config(tmp_path):
+    config_path = tmp_path / "prompt_quality_patterns.json"
+    config_path.write_text(
+        """
+{
+  "vague_prompts": ["custom vague"],
+  "unsupported_patterns": ["custom unsupported"],
+  "intent_keywords": {
+    "DIRECT_ANALYSIS": ["custom missing"]
+  },
+  "default_suggestions": ["custom suggestion"],
+  "unsupported_suggestions": ["custom unsupported suggestion"]
+}
+""",
+        encoding="utf-8",
+    )
+
+    agent = PromptQualityAgent(config_path=str(config_path))
+
+    vague_result = agent.evaluate("custom vague")
+    unsupported_result = agent.evaluate("custom unsupported")
+    acceptable_result = agent.evaluate("custom missing")
+
+    assert not vague_result.is_acceptable
+    assert vague_result.issue_type == "vague_prompt"
+    assert vague_result.suggested_prompts == ["custom suggestion"]
+
+    assert not unsupported_result.is_acceptable
+    assert unsupported_result.issue_type == "unsupported_request"
+    assert unsupported_result.suggested_prompts == ["custom unsupported suggestion"]
+
+    assert acceptable_result.is_acceptable
+    assert acceptable_result.detected_intents == ["DIRECT_ANALYSIS"]
+
+
+def test_prompt_quality_falls_back_when_config_missing():
+    agent = PromptQualityAgent(config_path="missing_config.json")
+
+    result = agent.evaluate("help me")
+
+    assert not result.is_acceptable
+    assert result.issue_type == "vague_prompt"
