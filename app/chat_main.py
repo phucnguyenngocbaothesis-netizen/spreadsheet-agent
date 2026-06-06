@@ -152,6 +152,7 @@ def render_llm_explanation_if_enabled(
 
 def build_sidebar():
     st.sidebar.title("Spreadsheet Agent")
+    st.sidebar.caption("Upload a spreadsheet, ask questions, and inspect results.")
 
     uploaded_file = st.sidebar.file_uploader(
         "Upload CSV or Excel",
@@ -305,6 +306,9 @@ def build_sidebar():
     if st.sidebar.button("New Chat"):
         st.session_state.messages = []
         st.rerun()
+    st.sidebar.caption(
+    "New Chat clears only the current visible chat session. Saved recent questions remain in SQLite."
+    )
 
     recent_history = sqlite_store.load_recent_chat_history(
         user_id=user_id,
@@ -804,6 +808,9 @@ sidebar_state = build_sidebar()
 uploaded_file = sidebar_state["uploaded_file"]
 
 st.title("Spreadsheet Agent Chat")
+st.caption(
+    "Chat-based spreadsheet analysis using deterministic Python agents and optional local LLM explanations."
+)
 
 if uploaded_file is None:
     st.info("Upload a CSV or Excel file from the sidebar to start.")
@@ -817,8 +824,10 @@ try:
     normalization_report = result.normalization_report
     profile = result.profile
 
-    with st.expander("Dataset overview", expanded=False):
-        col1, col2, col3 = st.columns(3)
+    with st.expander("Dataset overview", expanded=True):
+        st.subheader("Dataset Status")
+
+        col1, col2, col3, col4 = st.columns(4)
 
         with col1:
             st.metric("Rows", profile["shape"]["rows"])
@@ -829,23 +838,51 @@ try:
         with col3:
             st.metric("Duplicate rows", profile["duplicate_rows"])
 
+        with col4:
+            missing_total = sum(profile.get("missing_values", {}).values())
+            st.metric("Missing values", missing_total)
+
         st.subheader("Preview")
         st.dataframe(df.head(20), use_container_width=True)
 
-        st.subheader("Metadata")
-        st.json(metadata)
+        with st.expander("Metadata", expanded=False):
+            st.json(metadata)
 
-        st.subheader("Normalization report")
-        st.json(normalization_report)
+        with st.expander("Normalization report", expanded=False):
+            st.json(normalization_report)
 
-        st.subheader("Full dataset profile")
-        st.json(profile)
+        with st.expander("Full dataset profile", expanded=False):
+            st.json(profile)
+
+    with st.expander("Example prompts", expanded=False):
+        st.markdown(
+            """
+    **Direct analysis**
+    - `show missing values`
+    - `tell me about gross revenue`
+
+    **Visualization**
+    - `draw bar chart of gross revenue by region`
+
+    **Code generation**
+    - `write pandas code to group gross revenue by region`
+
+    **Vietnamese**
+    - `cho mình xem giá trị thiếu`
+    - `vẽ biểu đồ gross revenue theo region`
+
+    **Prompt guard tests**
+    - `help me`
+    - `tell me about profit margin`
+    """
+        )
 
     for message in st.session_state.messages:
         render_message(message)
 
-    user_question = st.chat_input("Ask about your spreadsheet...")
-
+    user_question = st.chat_input(
+        "Ask about missing values, columns, charts, insights, code, or planning..."
+    )
     if user_question:
         add_message("user", user_question)
 
