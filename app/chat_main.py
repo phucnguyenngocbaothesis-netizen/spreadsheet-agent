@@ -440,6 +440,57 @@ def process_question(
         }
 
     route_result = fast_router_agent.route(question, profile)
+    column_sensitive_routes = {
+        "DIRECT_ANALYSIS",
+        "VISUALIZATION",
+        "CODEGEN_SQL",
+    }
+
+    if (
+        route_result.route in column_sensitive_routes
+        and column_validation_agent.should_validate_question_columns(
+            question=question,
+            route=route_result.route,
+        )
+    ):
+        column_validation_result = column_validation_agent.validate_question_columns(
+            question=question,
+            available_columns=profile.get("columns", []),
+        )
+
+        if column_validation_result.has_missing_columns:
+            content = column_validation_agent.format_result_as_markdown(
+                column_validation_result
+            )
+
+            artifact = {
+                "type": "json",
+                "title": "Column validation metadata",
+                "data": {
+                    "has_missing_columns": column_validation_result.has_missing_columns,
+                    "mentioned_columns": column_validation_result.mentioned_columns,
+                    "missing_columns": column_validation_result.missing_columns,
+                    "existing_columns": column_validation_result.existing_columns,
+                    "suggestions": column_validation_result.suggestions,
+                    "warnings": column_validation_result.warnings,
+                },
+            }
+
+            sqlite_store.save_chat_message(
+                user_id=sidebar_state["user_id"],
+                dataset_name=uploaded_file_name,
+                question=question,
+                route="COLUMN_VALIDATION_REJECTED",
+                answer_preview=content,
+            )
+
+            return {
+                "role": "assistant",
+                "content": content,
+                "artifact": artifact,
+            }
+
+
     llm_route_fallback_result = None
 
     if (

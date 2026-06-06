@@ -349,5 +349,58 @@ def test_llm_explanation_agent_falls_back_when_response_empty():
 
     assert not result.success
     assert result.fallback_used
-    assert result.error == "Empty LLM response."
+    assert result.error == "Empty LLM response after retry."
     assert any("empty" in warning.lower() for warning in result.warnings)
+
+class FakeEmptyThenSuccessfulClient:
+    model_name = "qwen3:4b"
+
+    def __init__(self):
+        self.call_count = 0
+
+    def get_status(self):
+        class Status:
+            available = True
+            message = "Local LLM available."
+
+        return Status()
+
+    def validate_model(self):
+        class Validation:
+            is_valid = True
+            message = "Model available."
+
+        return Validation()
+
+    def generate(self, *args, **kwargs):
+        self.call_count += 1
+
+        if self.call_count == 1:
+            return LLMResponse(
+                success=True,
+                content="",
+                model=self.model_name,
+                provider="local_ollama",
+            )
+
+        return LLMResponse(
+            success=True,
+            content="The revenue column has missing values, but the deterministic result remains valid.",
+            model=self.model_name,
+            provider="local_ollama",
+        )
+    
+def test_llm_explanation_agent_retries_when_response_empty():
+    fake_client = FakeEmptyThenSuccessfulClient()
+    agent = LLMExplanationAgent(fake_client)
+
+    result = agent.explain_eda_result(
+        user_question="show missing values",
+        deterministic_result="Revenue has 1 missing value.",
+        profile=make_profile(),
+    )
+
+    assert result.success
+    assert result.source == "local_llm_retry"
+    assert fake_client.call_count == 2
+    assert any("Retrying once" in warning for warning in result.warnings)

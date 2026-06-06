@@ -1,0 +1,26 @@
+id,user_question,expected_behavior,expected_route,expected_issue_type
+1,help me,REJECT,,vague_prompt
+2,can you help me,REJECT,,vague_prompt
+3,show missing values,ROUTE,DIRECT_ANALYSIS,
+4,cho mình xem giá trị thiếu,ROUTE,DIRECT_ANALYSIS,
+5,tell me about gross revenue,ROUTE,DIRECT_ANALYSIS,
+6,cho mình biết về gross revenue,ROUTE,DIRECT_ANALYSIS,
+7,show missing values and draw bar chart of gross revenue by region,REJECT,,multi_intent_prompt
+8,cho mình xem giá trị thiếu và vẽ biểu đồ doanh thu,REJECT,,multi_intent_prompt
+9,train a model to predict revenue,REJECT,,unsupported_request
+10,build a dashboard for this dataset,REJECT,,unsupported_request
+11,draw bar chart of gross revenue by region,ROUTE,VISUALIZATION,
+12,vẽ biểu đồ gross revenue theo region,ROUTE,VISUALIZATION,
+13,write pandas code to group gross revenue by region,ROUTE,CODEGEN_SQL,
+14,viết code pandas để nhóm gross revenue theo region,ROUTE,CODEGEN_SQL,
+15,create a cleaning plan,ROUTE,PLANNING,
+16,tạo kế hoạch làm sạch dữ liệu,ROUTE,PLANNING,
+17,find insights in this dataset,ROUTE,EDA_INSIGHT,
+18,tìm insight trong dataset này,ROUTE,EDA_INSIGHT,
+19,tell me about profit margin,COLUMN_REJECT,,
+20,draw chart of net income by country,COLUMN_REJECT,,
+21,write pandas code to group customer satisfaction by month,COLUMN_REJECT,,
+22,draw chart,ROUTE,VISUALIZATION,
+23,visualize this,ROUTE,VISUALIZATION,
+24,what is interesting here,ROUTE_OR_UNKNOWN,,
+25,make a visual breakdown of gross revenue by region,ROUTE_OR_UNKNOWN,,

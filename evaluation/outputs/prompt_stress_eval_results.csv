@@ -1,0 +1,26 @@
+id,user_question,expected_behavior,predicted_behavior,behavior_correct,expected_route,predicted_route,route_correct,expected_issue_type,predicted_issue_type,issue_type_correct,is_correct
+1,help me,REJECT,REJECT,True,,,True,vague_prompt,vague_prompt,True,True
+2,can you help me,REJECT,REJECT,True,,,True,vague_prompt,vague_prompt,True,True
+3,show missing values,ROUTE,ROUTE,True,DIRECT_ANALYSIS,DIRECT_ANALYSIS,True,,,True,True
+4,cho mình xem giá trị thiếu,ROUTE,ROUTE,True,DIRECT_ANALYSIS,DIRECT_ANALYSIS,True,,,True,True
+5,tell me about gross revenue,ROUTE,ROUTE,True,DIRECT_ANALYSIS,DIRECT_ANALYSIS,True,,,True,True
+6,cho mình biết về gross revenue,ROUTE,ROUTE,True,DIRECT_ANALYSIS,DIRECT_ANALYSIS,True,,,True,True
+7,show missing values and draw bar chart of gross revenue by region,REJECT,REJECT,True,,,True,multi_intent_prompt,multi_intent_prompt,True,True
+8,cho mình xem giá trị thiếu và vẽ biểu đồ doanh thu,REJECT,REJECT,True,,,True,multi_intent_prompt,multi_intent_prompt,True,True
+9,train a model to predict revenue,REJECT,REJECT,True,,,True,unsupported_request,unsupported_request,True,True
+10,build a dashboard for this dataset,REJECT,REJECT,True,,,True,unsupported_request,unsupported_request,True,True
+11,draw bar chart of gross revenue by region,ROUTE,ROUTE,True,VISUALIZATION,VISUALIZATION,True,,,True,True
+12,vẽ biểu đồ gross revenue theo region,ROUTE,ROUTE,True,VISUALIZATION,VISUALIZATION,True,,,True,True
+13,write pandas code to group gross revenue by region,ROUTE,ROUTE,True,CODEGEN_SQL,CODEGEN_SQL,True,,,True,True
+14,viết code pandas để nhóm gross revenue theo region,ROUTE,ROUTE,True,CODEGEN_SQL,CODEGEN_SQL,True,,,True,True
+15,create a cleaning plan,ROUTE,ROUTE,True,PLANNING,PLANNING,True,,,True,True
+16,tạo kế hoạch làm sạch dữ liệu,ROUTE,ROUTE,True,PLANNING,PLANNING,True,,,True,True
+17,find insights in this dataset,ROUTE,ROUTE,True,EDA_INSIGHT,EDA_INSIGHT,True,,,True,True
+18,tìm insight trong dataset này,ROUTE,ROUTE,True,EDA_INSIGHT,EDA_INSIGHT,True,,,True,True
+19,tell me about profit margin,COLUMN_REJECT,COLUMN_REJECT,True,,,True,,,True,True
+20,draw chart of net income by country,COLUMN_REJECT,COLUMN_REJECT,True,,,True,,,True,True
+21,write pandas code to group customer satisfaction by month,COLUMN_REJECT,COLUMN_REJECT,True,,,True,,,True,True
+22,draw chart,ROUTE,ROUTE,True,VISUALIZATION,VISUALIZATION,True,,,True,True
+23,visualize this,ROUTE,ROUTE,True,VISUALIZATION,VISUALIZATION,True,,,True,True
+24,what is interesting here,ROUTE_OR_UNKNOWN,ROUTE_OR_UNKNOWN,True,,UNKNOWN,True,,,True,True
+25,make a visual breakdown of gross revenue by region,ROUTE_OR_UNKNOWN,ROUTE_OR_UNKNOWN,True,,UNKNOWN,True,,,True,True

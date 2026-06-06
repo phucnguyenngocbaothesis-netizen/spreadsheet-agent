@@ -286,7 +286,15 @@ class ColumnValidationAgent:
             "categorical summary",
         }
 
-        return phrase not in blocked_phrases
+        if phrase in blocked_phrases:
+            return False
+
+        tokens = phrase.split()
+
+        if len(tokens) < 2:
+            return False
+
+        return all(self._looks_like_column_word(token) for token in tokens)
 
     def _normalize_text(self, text: str) -> str:
         normalized = str(text).lower()
@@ -298,3 +306,66 @@ class ColumnValidationAgent:
         normalized = " ".join(normalized.split())
 
         return normalized
+    
+    def should_validate_question_columns(
+        self,
+        question: str,
+        route: str | None = None,
+    ) -> bool:
+        normalized_question = self._normalize_text(question)
+
+        routes_without_column_validation = {
+            "PLANNING",
+            "EDA_INSIGHT",
+            "PERSONALIZATION",
+            "UNKNOWN",
+        }
+
+        if route in routes_without_column_validation:
+            return False
+
+        generic_analysis_patterns = [
+            "missing values",
+            "show missing",
+            "giá trị thiếu",
+            "dữ liệu thiếu",
+            "duplicate rows",
+            "dòng trùng",
+            "trùng lặp",
+            "data types",
+            "kiểu dữ liệu",
+            "show columns",
+            "tên cột",
+            "shape",
+            "kích thước",
+            "numeric summary",
+            "categorical summary",
+            "sample rows",
+            "mẫu dữ liệu",
+        ]
+
+        if any(pattern in normalized_question for pattern in generic_analysis_patterns):
+            return False
+
+        explicit_column_patterns = [
+            "tell me about",
+            "describe",
+            "what is",
+            "summary of",
+            "draw chart of",
+            "chart of",
+            " by ",
+            "group",
+            "group by",
+            "write pandas code to group",
+            "write sql query to group",
+            "cho mình biết về",
+            "nói về",
+            "mô tả",
+            "về",
+            "theo",
+            "nhóm",
+            "vẽ biểu đồ",
+        ]
+
+        return any(pattern in normalized_question for pattern in explicit_column_patterns)
