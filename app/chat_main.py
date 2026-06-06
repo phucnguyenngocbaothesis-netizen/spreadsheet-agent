@@ -10,6 +10,7 @@ import streamlit as st
 ROOT_DIR = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT_DIR))
 
+from agents.llm_planning_refinement_agent import LLMPlanningRefinementAgent
 from agents.column_validation_agent import ColumnValidationAgent
 from agents.prompt_quality_agent import PromptQualityAgent
 from agents.chart_builder import ChartBuilderAgent
@@ -44,6 +45,7 @@ personalization_agent = PersonalizationAgent()
 prompt_quality_agent = PromptQualityAgent()
 sqlite_store = SQLiteStore()
 column_validation_agent = ColumnValidationAgent()
+
 
 @st.cache_data(ttl=30)
 def get_cached_llm_models() -> list[str]:
@@ -240,6 +242,11 @@ def build_sidebar():
         value=False,
     )
 
+    enable_llm_planning_refinement = st.sidebar.checkbox(
+    "Enable optional LLM planning refinement",
+    value=False,
+)
+
     available_llm_models = get_cached_llm_models()
     available_llm_models = ModelUtils.sort_models(available_llm_models)
 
@@ -282,6 +289,7 @@ def build_sidebar():
     local_llm_client = LocalLLMClient(model_name=llm_model_name)
     llm_explanation_agent = LLMExplanationAgent(local_llm_client)
     llm_router_fallback_agent = LLMRouterFallbackAgent(local_llm_client)
+    llm_planning_refinement_agent = LLMPlanningRefinementAgent(local_llm_client)
 
     if enable_llm_explanation or enable_llm_route_fallback:
         llm_status = local_llm_client.get_status()
@@ -343,6 +351,8 @@ def build_sidebar():
         "enable_llm_route_fallback": enable_llm_route_fallback,
         "llm_explanation_agent": llm_explanation_agent,
         "llm_router_fallback_agent": llm_router_fallback_agent,
+        "enable_llm_planning_refinement": enable_llm_planning_refinement,
+       "llm_planning_refinement_agent": llm_planning_refinement_agent,
     }
 
 
@@ -736,14 +746,45 @@ def process_question(
             apply_personalization=sidebar_state["apply_personalization"],
         )
 
-        content = f"{route_header}\n\n---\n\n{planning_markdown}"
+        planning_refinement_markdown = ""
+
+        if sidebar_state["enable_llm_planning_refinement"]:
+            refinement_result = sidebar_state[
+                "llm_planning_refinement_agent"
+            ].refine_plan(
+                user_question=question,
+                deterministic_plan=planning_markdown,
+                language=detected_language,
+            )
+
+            planning_refinement_markdown = (
+                "\n\n---\n\n"
+                "### Optional LLM Planning Refinement\n\n"
+                f"- Success: `{refinement_result.success}`\n"
+                f"- Fallback used: `{refinement_result.fallback_used}`\n"
+                f"- Model: `{refinement_result.model}`\n\n"
+            )
+
+            if refinement_result.warnings:
+                planning_refinement_markdown += "Warnings:\n"
+                for warning in refinement_result.warnings:
+                    planning_refinement_markdown += f"- {warning}\n"
+                planning_refinement_markdown += "\n"
+
+            planning_refinement_markdown += refinement_result.refined_plan
+
+        content = (
+            f"{route_header}\n\n---\n\n"
+            f"{planning_markdown}"
+            f"{planning_refinement_markdown}"
+        )
 
         artifact = {
             "type": "planning_steps",
             "steps": planning_result.steps,
         }
 
-        answer_preview = planning_markdown
+        answer_preview = content
 
     elif route_result.route == "PERSONALIZATION":
         base_content = (

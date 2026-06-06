@@ -83,3 +83,14 @@ def test_chart_explanation_prompt_supports_vietnamese():
     )
 
     assert "Respond in Vietnamese" in prompt
+
+def test_planning_refinement_prompt_contains_language_instruction():
+    prompt = PromptTemplates.planning_refinement_prompt(
+        user_question="tạo kế hoạch làm sạch dữ liệu",
+        deterministic_plan="Step 1: Check missing values.",
+        language="vi",
+    )
+
+    assert "Respond in Vietnamese" in prompt
+    assert "Do not invent dataset columns" in prompt
+    assert "Step 1: Check missing values" in prompt

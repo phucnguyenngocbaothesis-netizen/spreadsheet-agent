@@ -18,6 +18,47 @@ class PromptTemplates:
         return "Respond in English."
 
     @staticmethod
+    def planning_refinement_prompt(
+        user_question: str,
+        deterministic_plan: str,
+        language: str = "en",
+    ) -> str:
+        response_language_instruction = (
+            PromptTemplates.get_response_language_instruction(language)
+        )
+
+        return f"""
+    You are refining a deterministic spreadsheet analysis plan.
+
+    User question:
+    {user_question}
+
+    Deterministic plan:
+    {deterministic_plan}
+
+    Response language:
+    {response_language_instruction}
+
+    Task:
+    Rewrite the plan so it is clearer, easier to follow, and more useful for a spreadsheet analysis workflow.
+
+    Rules:
+    - Do not create a completely new plan.
+    - Do not remove important steps from the deterministic plan.
+    - Do not invent dataset columns.
+    - Do not invent results.
+    - Keep the original workflow intent.
+    - Keep the plan concise.
+    - Use numbered steps.
+    - Add short explanations only when useful.
+
+    Output format:
+    1. Refined workflow
+    2. Why these steps matter
+    3. Short conclusion
+    """.strip()
+
+    @staticmethod
     def eda_explanation_prompt(
         user_question: str,
         deterministic_result: str,
