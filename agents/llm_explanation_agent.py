@@ -53,6 +53,7 @@ class LLMExplanationAgent:
         return self._generate_explanation(
             prompt=prompt,
             prompt_type="eda_explanation",
+            fallback_explanation=deterministic_result,
         )
 
     def explain_eda_result_with_table_context(
@@ -83,6 +84,7 @@ class LLMExplanationAgent:
         result = self._generate_explanation(
             prompt=prompt,
             prompt_type="eda_explanation_with_table_context",
+            fallback_explanation=deterministic_result,
         )
 
         if table_context.warnings:
@@ -107,12 +109,14 @@ class LLMExplanationAgent:
         return self._generate_explanation(
             prompt=prompt,
             prompt_type="chart_explanation",
+            fallback_explanation=chart_insights_markdown,
         )
 
     def _generate_explanation(
         self,
         prompt: str,
         prompt_type: str,
+        fallback_explanation: str,
     ) -> LLMExplanationResult:
         warnings: list[str] = []
 
@@ -172,18 +176,50 @@ class LLMExplanationAgent:
         raw_content = llm_response.content.strip()
 
         if not raw_content:
-            warnings.append("LLM returned an empty explanation.")
+            warnings.append("LLM returned an empty explanation. Retrying once with a shorter prompt.")
+
+            retry_prompt = self._build_retry_prompt(prompt)
+
+            retry_response = self.llm_client.generate(
+                prompt=retry_prompt,
+                system_prompt=(
+                    "You explain spreadsheet analysis results. "
+                    "Return a short, useful explanation. Do not return an empty response."
+                ),
+                temperature=0.1,
+                max_tokens=200,
+            )
+
+            if retry_response.success and retry_response.content.strip():
+                cleaned_explanation = self._clean_response(retry_response.content)
+                quality_warnings = self._validate_explanation_quality(cleaned_explanation)
+                warnings.extend(quality_warnings)
+
+                return LLMExplanationResult(
+                    success=True,
+                    explanation=cleaned_explanation,
+                    source="local_llm_retry",
+                    model=self.llm_client.model_name,
+                    fallback_used=False,
+                    error=None,
+                    prompt_type=prompt_type,
+                    warnings=warnings,
+                )
+
+            warnings.append("LLM retry also returned an empty or failed explanation.")
 
             return LLMExplanationResult(
                 success=False,
                 explanation=(
-                    "The deterministic result is still valid, but the local LLM returned "
-                    "an empty explanation. Please try again or use another local model."
+                    "The local LLM returned an empty explanation after retrying.\n\n"
+                    "The deterministic result is still valid, so the system is showing a "
+                    "deterministic fallback explanation instead:\n\n"
+                    f"{fallback_explanation}"
                 ),
-                source="fallback",
+                source="deterministic_fallback",
                 model=self.llm_client.model_name,
                 fallback_used=True,
-                error="Empty LLM response.",
+                error="Empty LLM response after retry.",
                 prompt_type=prompt_type,
                 warnings=warnings,
             )
@@ -240,3 +276,17 @@ class LLMExplanationAgent:
             warnings.append("LLM explanation may be incomplete or cut off.")
 
         return warnings
+    
+    def _build_retry_prompt(self, original_prompt: str) -> str:
+        return f"""
+    The previous response may have been empty.
+
+    Please answer briefly and clearly.
+
+    Use only the information below.
+    Do not invent numbers.
+    Write 3 to 5 bullet points maximum.
+
+    Context:
+    {original_prompt}
+    """.strip()
