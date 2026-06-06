@@ -25,7 +25,10 @@ from evaluation.run_routing_eval import (
     run_routing_evaluation,
     summarize_results as summarize_routing_results,
 )
-
+from evaluation.run_prompt_stress_eval import (
+    run_prompt_stress_evaluation,
+    summarize_results as summarize_prompt_stress_results,
+)
 
 def run_single_evaluation(
     evaluation_name: str,
@@ -67,6 +70,11 @@ def run_all_evaluations(
             evaluation_name="codegen_validation",
             run_function=run_codegen_evaluation,
             summarize_function=summarize_codegen_results,
+        ),
+        run_single_evaluation(
+            evaluation_name="prompt_stress",
+            run_function=run_prompt_stress_evaluation,
+            summarize_function=summarize_prompt_stress_results,
         ),
     ]
 
