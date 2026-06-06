@@ -218,3 +218,24 @@ def test_chart_builder_bar_requires_categorical_and_numeric_columns():
 
     with pytest.raises(ValueError, match="categorical column"):
         agent.build_chart("draw bar chart", df)
+
+def test_chart_builder_creates_pie_chart():
+    df = pd.DataFrame(
+        {
+            "region": ["HCMC", "Hanoi", "Danang", "HCMC"],
+            "gross_revenue": [1000, 500, 250, 700],
+        }
+    )
+
+    agent = ChartBuilderAgent()
+
+    result = agent.build_chart(
+        "draw pie chart of gross revenue by region",
+        df,
+    )
+
+    assert result.chart_type == "pie"
+    assert result.x_column == "region"
+    assert result.y_column == "gross_revenue"
+    assert result.figure is not None
+    assert not result.chart_data.empty

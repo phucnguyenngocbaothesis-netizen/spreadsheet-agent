@@ -35,10 +35,11 @@ class ChartBuilderAgent:
     Rule-based chart recommendation and chart rendering.
 
     Supported charts:
-    - Bar chart: categorical + numeric
-    - Line chart: datetime + numeric
-    - Scatter plot: numeric + numeric
-    - Histogram: one numeric column
+        - Bar chart: categorical + numeric
+        - Line chart: datetime + numeric
+        - Scatter plot: numeric + numeric
+        - Histogram: one numeric column
+        - Pie chart: categorical + numeric
     """
 
     def recommend_chart(self, question: str, df: pd.DataFrame) -> ChartRecommendation:
@@ -51,6 +52,46 @@ class ChartBuilderAgent:
         )
 
         mentioned_columns = self._find_mentioned_columns(question_lower, df.columns)
+
+        mentioned_columns = self._find_mentioned_columns(question_lower, df.columns)
+
+        pie_keywords = [
+            "pie",
+            "pie chart",
+            "share",
+            "composition",
+            "proportion",
+            "percentage share",
+            "revenue share",
+            "sales share",
+            "biểu đồ tròn",
+            "tỷ trọng",
+            "tỉ trọng",
+            "cơ cấu",
+        ]
+
+        if any(keyword in question_lower for keyword in pie_keywords):
+            x_column = self._select_column(mentioned_columns, categorical_columns)
+            y_column = self._select_column(mentioned_columns, numeric_columns)
+
+            if x_column is None:
+                x_column = categorical_columns[0] if categorical_columns else None
+
+            if y_column is None:
+                y_column = numeric_columns[0] if numeric_columns else None
+
+            if x_column is None or y_column is None:
+                raise ValueError("Pie chart requires one categorical column and one numeric column.")
+
+            return ChartRecommendation(
+                chart_type="pie",
+                x_column=x_column,
+                y_column=y_column,
+                reason=(
+                    "Recommended pie chart because the request asks for share, "
+                    "composition, or proportion by category."
+                ),
+            )
 
         if "histogram" in question_lower or "distribution" in question_lower:
             numeric_column = self._select_column(mentioned_columns, numeric_columns)
@@ -172,6 +213,20 @@ class ChartBuilderAgent:
                 reason=recommendation.reason,
             )
 
+        if recommendation.chart_type == "pie":
+            if recommendation.x_column is None or recommendation.y_column is None:
+                raise ValueError(
+                    "Cannot create a pie chart because the required columns were not found. "
+                    "Please use a dataset with one categorical column and one numeric column."
+                )
+
+            return self._build_pie_chart(
+                df=df,
+                x_column=recommendation.x_column,
+                y_column=recommendation.y_column,
+                reason=recommendation.reason,
+            )
+
         if recommendation.chart_type == "bar":
             if recommendation.x_column is None or recommendation.y_column is None:
                 raise ValueError(
@@ -243,6 +298,66 @@ class ChartBuilderAgent:
         return ChartResult(
             figure=figure,
             chart_type="bar",
+            x_column=x_column,
+            y_column=y_column,
+            chart_data=chart_data,
+            reason=reason,
+        )
+
+    def _build_pie_chart(
+        self,
+        df: pd.DataFrame,
+        x_column: str,
+        y_column: str,
+        reason: str,
+    ) -> ChartResult:
+        chart_data = (
+            df[[x_column, y_column]]
+            .dropna()
+            .groupby(x_column, as_index=False)[y_column]
+            .sum()
+            .sort_values(y_column, ascending=False)
+        )
+
+        # Pie charts cannot represent negative or zero slices meaningfully.
+        chart_data = chart_data[chart_data[y_column] > 0]
+
+        if chart_data.empty:
+            raise ValueError(
+                "Cannot create a pie chart because there are no positive values to plot."
+            )
+
+        max_slices = 6
+
+        if len(chart_data) > max_slices:
+            top_data = chart_data.head(max_slices - 1)
+            other_value = chart_data.iloc[max_slices - 1:][y_column].sum()
+
+            other_row = pd.DataFrame(
+                {
+                    x_column: ["Other"],
+                    y_column: [other_value],
+                }
+            )
+
+            chart_data = pd.concat([top_data, other_row], ignore_index=True)
+
+        figure, axis = plt.subplots(figsize=(8, 6))
+
+        axis.pie(
+            chart_data[y_column],
+            labels=chart_data[x_column].astype(str),
+            autopct="%1.1f%%",
+            startangle=90,
+        )
+
+        axis.set_title(f"{y_column} share by {x_column}")
+        axis.axis("equal")
+        figure.tight_layout()
+
+        return ChartResult(
+            figure=figure,
+            chart_type="pie",
             x_column=x_column,
             y_column=y_column,
             chart_data=chart_data,
