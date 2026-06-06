@@ -10,6 +10,7 @@ import streamlit as st
 ROOT_DIR = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT_DIR))
 
+from agents.column_validation_agent import ColumnValidationAgent
 from agents.prompt_quality_agent import PromptQualityAgent
 from agents.chart_builder import ChartBuilderAgent
 from agents.codegen_sql import CodegenSQLAgent
@@ -42,7 +43,7 @@ planning_agent = PlanningAgent()
 personalization_agent = PersonalizationAgent()
 prompt_quality_agent = PromptQualityAgent()
 sqlite_store = SQLiteStore()
-
+column_validation_agent = ColumnValidationAgent()
 
 @st.cache_data(ttl=30)
 def get_cached_llm_models() -> list[str]:
@@ -401,6 +402,43 @@ def process_question(
 
     detected_language = LanguageUtils.detect_language(question)
 
+    column_validation_result = column_validation_agent.validate_question_columns(
+        question=question,
+        available_columns=profile.get("columns", []),
+    )
+
+    if column_validation_result.has_missing_columns:
+        content = column_validation_agent.format_result_as_markdown(
+            column_validation_result
+        )
+
+        artifact = {
+            "type": "json",
+            "title": "Column validation metadata",
+            "data": {
+                "has_missing_columns": column_validation_result.has_missing_columns,
+                "mentioned_columns": column_validation_result.mentioned_columns,
+                "missing_columns": column_validation_result.missing_columns,
+                "existing_columns": column_validation_result.existing_columns,
+                "suggestions": column_validation_result.suggestions,
+                "warnings": column_validation_result.warnings,
+            },
+        }
+
+        sqlite_store.save_chat_message(
+            user_id=sidebar_state["user_id"],
+            dataset_name=uploaded_file_name,
+            question=question,
+            route="COLUMN_VALIDATION_REJECTED",
+            answer_preview=content,
+        )
+
+        return {
+            "role": "assistant",
+            "content": content,
+            "artifact": artifact,
+        }
+
     route_result = fast_router_agent.route(question, profile)
     llm_route_fallback_result = None
 
@@ -479,69 +517,101 @@ def process_question(
         answer_preview = answer
 
     elif route_result.route == "VISUALIZATION":
-        chart_result = chart_builder_agent.build_chart(question, df)
+        try:
+            chart_result = chart_builder_agent.build_chart(question, df)
 
-        chart_insight_result = eda_insight_agent.generate_chart_insights(
-            chart_type=chart_result.chart_type,
-            chart_data=chart_result.chart_data,
-            x_column=chart_result.x_column,
-            y_column=chart_result.y_column,
-        )
+            chart_insight_result = eda_insight_agent.generate_chart_insights(
+                chart_type=chart_result.chart_type,
+                chart_data=chart_result.chart_data,
+                x_column=chart_result.x_column,
+                y_column=chart_result.y_column,
+            )
 
-        chart_insight_markdown = eda_insight_agent.format_result_as_markdown(
-            chart_insight_result
-        )
+            chart_insight_markdown = eda_insight_agent.format_result_as_markdown(
+                chart_insight_result
+            )
 
-        chart_insight_markdown = personalize_if_enabled(
-            content=chart_insight_markdown,
-            user_profile=sidebar_state["user_profile"],
-            apply_personalization=sidebar_state["apply_personalization"],
-        )
+            chart_insight_markdown = personalize_if_enabled(
+                content=chart_insight_markdown,
+                user_profile=sidebar_state["user_profile"],
+                apply_personalization=sidebar_state["apply_personalization"],
+            )
 
-        llm_extra = ""
+            llm_extra = ""
 
-        if sidebar_state["enable_llm_explanation"]:
-            chart_metadata = {
-                "chart_type": chart_result.chart_type,
-                "x_column": chart_result.x_column,
-                "y_column": chart_result.y_column,
-                "reason": chart_result.reason,
+            if sidebar_state["enable_llm_explanation"]:
+                chart_metadata = {
+                    "chart_type": chart_result.chart_type,
+                    "x_column": chart_result.x_column,
+                    "y_column": chart_result.y_column,
+                    "reason": chart_result.reason,
+                }
+
+                llm_result = sidebar_state[
+                    "llm_explanation_agent"
+                ].explain_chart_result(
+                    user_question=question,
+                    chart_metadata=chart_metadata,
+                    chart_insights_markdown=chart_insight_markdown,
+                    language=detected_language,
+                )
+
+                llm_extra = render_llm_explanation_if_enabled(
+                    enable_llm_explanation=True,
+                    llm_explanation_result=llm_result,
+                )
+
+            content = (
+                f"{route_header}\n\n---\n\n"
+                f"Created a `{chart_result.chart_type}` chart.\n\n"
+                f"{chart_insight_markdown}"
+                f"{llm_extra}"
+            )
+
+            artifact = {
+                "type": "chart",
+                "figure": chart_result.figure,
+                "chart_data": chart_result.chart_data,
+                "metadata": {
+                    "chart_type": chart_result.chart_type,
+                    "x_column": chart_result.x_column,
+                    "y_column": chart_result.y_column,
+                    "reason": chart_result.reason,
+                },
             }
 
-            llm_result = sidebar_state[
-                "llm_explanation_agent"
-            ].explain_chart_result(
-                user_question=question,
-                chart_metadata=chart_metadata,
-                chart_insights_markdown=chart_insight_markdown,
-                language=detected_language,
+            answer_preview = content
+
+        except Exception as chart_error:
+            content = (
+                f"{route_header}\n\n---\n\n"
+                "I could not build a chart from this prompt.\n\n"
+                "Please specify a chart type and valid dataset columns.\n\n"
+                "Try one of these prompts:\n"
+                "- draw bar chart of gross revenue by region\n"
+                "- show histogram of profit\n"
+                "- show line chart of gross revenue over order date\n"
+                "- show scatter plot of shipping cost and profit\n\n"
+                f"Error: `{chart_error}`"
             )
 
-            llm_extra = render_llm_explanation_if_enabled(
-                enable_llm_explanation=True,
-                llm_explanation_result=llm_result,
-            )
+            artifact = {
+                "type": "json",
+                "title": "Chart error metadata",
+                "data": {
+                    "route": route_result.route,
+                    "question": question,
+                    "error": str(chart_error),
+                    "suggested_prompts": [
+                        "draw bar chart of gross revenue by region",
+                        "show histogram of profit",
+                        "show line chart of gross revenue over order date",
+                        "show scatter plot of shipping cost and profit",
+                    ],
+                },
+            }
 
-        content = (
-            f"{route_header}\n\n---\n\n"
-            f"Created a `{chart_result.chart_type}` chart.\n\n"
-            f"{chart_insight_markdown}"
-            f"{llm_extra}"
-        )
-
-        artifact = {
-            "type": "chart",
-            "figure": chart_result.figure,
-            "chart_data": chart_result.chart_data,
-            "metadata": {
-                "chart_type": chart_result.chart_type,
-                "x_column": chart_result.x_column,
-                "y_column": chart_result.y_column,
-                "reason": chart_result.reason,
-            },
-        }
-
-        answer_preview = content
+            answer_preview = content
 
     elif route_result.route == "EDA_INSIGHT":
         insight_result = eda_insight_agent.generate_insights(profile)
