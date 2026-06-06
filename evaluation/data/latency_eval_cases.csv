@@ -1,0 +1,11 @@
+id,user_question,expected_route,llm_expected
+1,show missing values,DIRECT_ANALYSIS,False
+2,show columns,DIRECT_ANALYSIS,False
+3,tell me about gross revenue,DIRECT_ANALYSIS,False
+4,draw bar chart of gross revenue by region,VISUALIZATION,False
+5,find insights in this dataset,EDA_INSIGHT,False
+6,write pandas code to group gross revenue by region,CODEGEN_SQL,False
+7,create a cleaning plan,PLANNING,False
+8,cho mình xem giá trị thiếu,DIRECT_ANALYSIS,False
+9,vẽ biểu đồ gross revenue theo region,VISUALIZATION,False
+10,make a visual breakdown of gross revenue by region,VISUALIZATION,True

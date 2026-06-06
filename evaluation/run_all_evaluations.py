@@ -9,6 +9,10 @@ import pandas as pd
 ROOT_DIR = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT_DIR))
 
+from evaluation.run_latency_eval import (
+    run_latency_evaluation,
+    summarize_results as summarize_latency_results,
+)
 from evaluation.run_chart_eval import (
     run_chart_evaluation,
     summarize_results as summarize_chart_results,
@@ -75,6 +79,11 @@ def run_all_evaluations(
             evaluation_name="prompt_stress",
             run_function=run_prompt_stress_evaluation,
             summarize_function=summarize_prompt_stress_results,
+        ),
+        run_single_evaluation(
+            evaluation_name="latency_llm_reduction",
+            run_function=run_latency_evaluation,
+            summarize_function=summarize_latency_results,
         ),
     ]
 

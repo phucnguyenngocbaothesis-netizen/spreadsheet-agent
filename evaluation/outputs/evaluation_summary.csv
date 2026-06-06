@@ -4,3 +4,4 @@ normalization,8,8,0,1.0
 chart_recommendation,8,8,0,1.0
 codegen_validation,9,9,0,1.0
 prompt_stress,25,25,0,1.0
+latency_llm_reduction,10,10,0,1.0

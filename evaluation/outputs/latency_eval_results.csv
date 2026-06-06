@@ -1,0 +1,11 @@
+id,user_question,expected_route,predicted_route,route_correct,llm_expected,llm_used,llm_call_avoided,rejected_by_column_validation,latency_ms
+1,show missing values,DIRECT_ANALYSIS,DIRECT_ANALYSIS,True,False,False,True,False,0.0432
+2,show columns,DIRECT_ANALYSIS,DIRECT_ANALYSIS,True,False,False,True,False,0.0307
+3,tell me about gross revenue,DIRECT_ANALYSIS,DIRECT_ANALYSIS,True,False,False,True,False,0.0448
+4,draw bar chart of gross revenue by region,VISUALIZATION,VISUALIZATION,True,False,False,True,False,0.0587
+5,find insights in this dataset,EDA_INSIGHT,EDA_INSIGHT,True,False,False,True,False,0.0292
+6,write pandas code to group gross revenue by region,CODEGEN_SQL,CODEGEN_SQL,True,False,False,True,False,0.0545
+7,create a cleaning plan,PLANNING,PLANNING,True,False,False,True,False,0.028
+8,cho mình xem giá trị thiếu,DIRECT_ANALYSIS,DIRECT_ANALYSIS,True,False,False,True,False,0.0373
+9,vẽ biểu đồ gross revenue theo region,VISUALIZATION,VISUALIZATION,True,False,False,True,False,0.0618
+10,make a visual breakdown of gross revenue by region,VISUALIZATION,UNKNOWN,True,True,True,False,False,0.0312
