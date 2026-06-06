@@ -312,3 +312,42 @@ def test_llm_explanation_agent_explains_with_table_context():
     assert result.success
     assert result.prompt_type == "eda_explanation_with_table_context"
     assert result.source == "local_llm"
+
+class FakeEmptyResponseClient:
+    model_name = "qwen3:4b"
+
+    def get_status(self):
+        class Status:
+            available = True
+            message = "Local LLM available."
+
+        return Status()
+
+    def validate_model(self):
+        class Validation:
+            is_valid = True
+            message = "Model available."
+
+        return Validation()
+
+    def generate(self, *args, **kwargs):
+        return LLMResponse(
+            success=True,
+            content="",
+            model=self.model_name,
+            provider="local_ollama",
+        )
+
+def test_llm_explanation_agent_falls_back_when_response_empty():
+    agent = LLMExplanationAgent(FakeEmptyResponseClient())
+
+    result = agent.explain_eda_result(
+        user_question="show missing values",
+        deterministic_result="Revenue has 1 missing value.",
+        profile=make_profile(),
+    )
+
+    assert not result.success
+    assert result.fallback_used
+    assert result.error == "Empty LLM response."
+    assert any("empty" in warning.lower() for warning in result.warnings)

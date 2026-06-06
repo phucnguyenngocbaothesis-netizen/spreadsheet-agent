@@ -169,7 +169,26 @@ class LLMExplanationAgent:
                 warnings=[llm_response.error or "Unknown LLM generation error."],
             )
 
-        cleaned_explanation = self._clean_response(llm_response.content)
+        raw_content = llm_response.content.strip()
+
+        if not raw_content:
+            warnings.append("LLM returned an empty explanation.")
+
+            return LLMExplanationResult(
+                success=False,
+                explanation=(
+                    "The deterministic result is still valid, but the local LLM returned "
+                    "an empty explanation. Please try again or use another local model."
+                ),
+                source="fallback",
+                model=self.llm_client.model_name,
+                fallback_used=True,
+                error="Empty LLM response.",
+                prompt_type=prompt_type,
+                warnings=warnings,
+            )
+
+        cleaned_explanation = self._clean_response(raw_content)
         quality_warnings = self._validate_explanation_quality(cleaned_explanation)
         warnings.extend(quality_warnings)
 
@@ -185,12 +204,7 @@ class LLMExplanationAgent:
         )
 
     def _clean_response(self, content: str) -> str:
-        cleaned = content.strip()
-
-        if not cleaned:
-            return "The LLM returned an empty explanation."
-
-        return cleaned
+        return content.strip()
     
     def _validate_explanation_quality(self, explanation: str) -> list[str]:
         warnings: list[str] = []
